@@ -7,13 +7,13 @@ import { SystemPromptResource } from "../types/index.js";
 const RESOURCES: Record<string, SystemPromptResource> = {
   "api-schema": {
     uri: "resource:///api-schema",
-    content: "https://api.systemprompt.io/v1/schema",
+    contentUrl: "https://api.systemprompt.io/v1/schema",
     type: "API Schema",
     description: "OpenAPI schema documentation for the SystemPrompt API",
   },
   "prompt-docs": {
     uri: "resource:///prompt-docs",
-    content: "https://systemprompt.io/resource/prompt",
+    contentUrl: "https://systemprompt.io/resource/prompt",
     type: "Prompt",
     description: "Documentation for the SystemPrompt prompt system",
   },
@@ -54,7 +54,7 @@ export async function handleReadResource(request: { params: { uri: string } }) {
       {
         uri: request.params.uri,
         mimeType: "text/plain",
-        text: resource.content,
+        text: resource.contentUrl,
       },
     ],
   };

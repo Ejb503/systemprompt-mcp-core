@@ -11,7 +11,7 @@ export interface CreatePromptInput {
 
 export interface SystemPromptResource {
   uri: string;
-  content: string;
+  contentUrl: string;
   type: "API Schema" | "Prompt";
   description: string;
 }
