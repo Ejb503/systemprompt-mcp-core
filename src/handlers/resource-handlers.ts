@@ -22,7 +22,7 @@ export async function handleListResources(
       resources: blocks.map((block) => ({
         uri: `resource:///block/${block.id}`,
         name: block.metadata.title,
-        description: block.metadata.description,
+        description: block.metadata.description ?? "",
         mimeType: "text/plain",
       })),
     };

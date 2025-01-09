@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2025-01-09
+
+### Changed
+
+- Made description field nullable in resource types for better type safety
+- Improved error handling for null descriptions in resource handlers
+- Enhanced test coverage for empty API key initialization and null descriptions
+- Refactored test mocks for better type safety
+
 ## [1.0.4] - 2025-01-09
 
 ### Added

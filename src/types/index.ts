@@ -5,7 +5,7 @@ export interface Block {
   content: string;
   metadata: {
     title: string;
-    description: string;
+    description: string | null;
     created: string;
     updated: string;
     version: number;

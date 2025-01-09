@@ -5,16 +5,16 @@ import {
   handleResourceCall,
   initializeService,
 } from "../resource-handlers.js";
-import type { Block } from "../../types/index.js";
+import type { BlockCreationResult } from "../../types/index.js";
 
 jest.mock("../../services/systemprompt-service.js");
 
 describe("Resource Handlers", () => {
-  const mockSystemPromptService = {
-    baseUrl: "https://api.systemprompt.io/v1",
-    listblock: jest.fn<() => Promise<Block[]>>(),
-    getBlock: jest.fn<(blockId: string) => Promise<Block>>(),
-    getAllprompt: jest.fn(),
+  const mockInstance = {
+    listblock: jest.fn<() => Promise<BlockCreationResult[]>>(),
+    getBlock: jest.fn<() => Promise<BlockCreationResult>>(),
+    getAllPrompt: jest.fn(),
+    getPrompt: jest.fn(),
     createPrompt: jest.fn(),
     editPrompt: jest.fn(),
     createBlock: jest.fn(),
@@ -24,33 +24,26 @@ describe("Resource Handlers", () => {
     deletePrompt: jest.fn(),
     request: jest.fn(),
     initialize: jest.fn(),
-  } as unknown as jest.Mocked<SystemPromptService>;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest
       .spyOn(SystemPromptService, "getInstance")
-      .mockReturnValue(mockSystemPromptService);
+      .mockReturnValue(mockInstance as unknown as SystemPromptService);
     initializeService("test-api-key");
   });
 
   describe("handleListResources", () => {
     it("should list resources", async () => {
-      const mockBlocks: Block[] = [
+      const mockBlocks: BlockCreationResult[] = [
         {
           id: "block1",
           content: "Test content 1",
           metadata: {
             title: "Test Block 1",
             description: "Test description 1",
-            created: "2024-01-01T00:00:00Z",
-            updated: "2024-01-01T00:00:00Z",
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Initial creation",
           },
-          _link: "test-link-1",
         },
         {
           id: "block2",
@@ -58,18 +51,11 @@ describe("Resource Handlers", () => {
           metadata: {
             title: "Test Block 2",
             description: "Test description 2",
-            created: "2024-01-01T00:00:00Z",
-            updated: "2024-01-01T00:00:00Z",
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Initial creation",
           },
-          _link: "test-link-2",
         },
       ];
 
-      mockSystemPromptService.listblock.mockResolvedValue(mockBlocks);
+      mockInstance.listblock.mockResolvedValue(mockBlocks);
 
       const result = await handleListResources({
         method: "resources/list",
@@ -87,7 +73,7 @@ describe("Resource Handlers", () => {
 
     it("should handle errors when listing resources", async () => {
       const error = new Error("Test error");
-      mockSystemPromptService.listblock.mockRejectedValue(error);
+      mockInstance.listblock.mockRejectedValue(error);
 
       await expect(
         handleListResources({
@@ -95,27 +81,41 @@ describe("Resource Handlers", () => {
         })
       ).rejects.toThrow("Failed to list resources: Error: Test error");
     });
+
+    it("should handle null description in resources", async () => {
+      const mockBlocksWithNullDesc: BlockCreationResult[] = [
+        {
+          id: "block1",
+          content: "Test content",
+          metadata: {
+            title: "Test Block",
+            description: "",
+          },
+        },
+      ];
+
+      mockInstance.listblock.mockResolvedValue(mockBlocksWithNullDesc);
+
+      const result = await handleListResources({
+        method: "resources/list",
+      });
+
+      expect(result.resources[0].description).toBe("");
+    });
   });
 
   describe("handleResourceCall", () => {
     it("should get a resource by URI", async () => {
-      const mockBlock: Block = {
+      const mockBlock: BlockCreationResult = {
         id: "block1",
         content: "Test content",
         metadata: {
           title: "Test Block",
           description: "Test description",
-          created: "2024-01-01T00:00:00Z",
-          updated: "2024-01-01T00:00:00Z",
-          version: 1,
-          status: "draft",
-          author: "test",
-          log_message: "Initial creation",
         },
-        _link: "test-link-1",
       };
 
-      mockSystemPromptService.getBlock.mockResolvedValue(mockBlock);
+      mockInstance.getBlock.mockResolvedValue(mockBlock);
 
       const result = await handleResourceCall({
         method: "resources/read",
@@ -151,9 +151,7 @@ describe("Resource Handlers", () => {
     });
 
     it("should handle errors when fetching block", async () => {
-      mockSystemPromptService.getBlock.mockRejectedValue(
-        new Error("API error")
-      );
+      mockInstance.getBlock.mockRejectedValue(new Error("API error"));
 
       await expect(
         handleResourceCall({
@@ -170,7 +168,7 @@ describe("Resource Handlers", () => {
     it("should handle errors without message when fetching block", async () => {
       const errorWithoutMessage = new Error();
       errorWithoutMessage.message = "";
-      mockSystemPromptService.getBlock.mockRejectedValue(errorWithoutMessage);
+      mockInstance.getBlock.mockRejectedValue(errorWithoutMessage);
 
       await expect(
         handleResourceCall({
@@ -182,6 +180,13 @@ describe("Resource Handlers", () => {
       ).rejects.toThrow(
         "Failed to fetch block from systemprompt.io: Unknown error"
       );
+    });
+  });
+
+  describe("initializeService", () => {
+    it("should initialize with empty API key", () => {
+      initializeService("");
+      expect(mockInstance.initialize).toHaveBeenCalledWith("");
     });
   });
 });
