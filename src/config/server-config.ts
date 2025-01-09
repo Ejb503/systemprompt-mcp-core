@@ -23,16 +23,11 @@ export const serverConfig: Implementation = {
 export const serverCapabilities: { capabilities: ServerCapabilities } = {
   capabilities: {
     resources: {
-      list: true,
-      read: true,
+      listChanged: true,
     },
-    tools: {
-      list: true,
-      call: true,
-    },
+    tools: {},
     prompts: {
-      list: true,
-      get: true,
+      listChanged: true,
     },
   },
 };

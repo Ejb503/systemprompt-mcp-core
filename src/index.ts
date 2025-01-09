@@ -1,74 +1,98 @@
 #!/usr/bin/env node
 
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { serverConfig, serverCapabilities } from "./config/server-config.js";
+import {
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+  ListResourcesRequest,
+  ListToolsRequest,
+  CallToolRequest,
+  ReadResourceRequest,
+  ListPromptsRequest,
+  GetPromptRequest,
+} from "@modelcontextprotocol/sdk/types.js";
+import { handleListTools, handleToolCall } from "./handlers/tool-handlers.js";
 import {
   handleListResources,
   handleResourceCall,
-  initializeService as initializeResourceService,
 } from "./handlers/resource-handlers.js";
-import {
-  handleListTools,
-  handleToolCall,
-  initializeService as initializeToolService,
-} from "./handlers/tool-handlers.js";
 import {
   handleListPrompts,
   handleGetPrompt,
-  initializeService as initializePromptService,
 } from "./handlers/prompt-handlers.js";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-  CallToolRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import { config } from "dotenv";
+import { serverConfig, serverCapabilities } from "./config/server-config.js";
+import { SystemPromptService } from "./services/systemprompt-service.js";
 
-async function main() {
+export async function startServer(apiKey: string) {
+  if (!apiKey) {
+    console.error(
+      "API key is required. Usage: systemprompt-agent-server <API_KEY>"
+    );
+    process.exit(1);
+  }
+
   try {
-    // Load environment variables first
-    config();
-
-    const apiKey = process.env.SYSTEMPROMPT_API_KEY;
-    if (!apiKey) {
-      throw new Error("SYSTEMPROMPT_API_KEY environment variable is required");
-    }
-
-    // Initialize services before creating server
-    initializePromptService(apiKey);
-    initializeResourceService(apiKey);
-    initializeToolService(apiKey);
-
-    // Create server instance directly
-    const server = new Server(serverConfig, serverCapabilities);
-
-    // Register all other handlers
-    server.setRequestHandler(ListResourcesRequestSchema, handleListResources);
-    server.setRequestHandler(ReadResourceRequestSchema, handleResourceCall);
-    server.setRequestHandler(ListToolsRequestSchema, handleListTools);
-    server.setRequestHandler(CallToolRequestSchema, handleToolCall);
-    server.setRequestHandler(ListPromptsRequestSchema, handleListPrompts);
-    server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
-
-    const transport = new StdioServerTransport();
-
-    // Connect to transport and keep running
-    await server.connect(transport);
-
-    // Keep the process alive without logging
-    process.stdin.resume();
+    SystemPromptService.initialize(apiKey);
   } catch (error) {
-    console.error("Server error:", error);
+    console.error("Failed to initialize service:", error);
+    process.exit(1);
+  }
+
+  const server = new Server(serverConfig, serverCapabilities);
+
+  server.setRequestHandler(
+    ListResourcesRequestSchema,
+    (req: ListResourcesRequest) => handleListResources(req)
+  );
+
+  server.setRequestHandler(
+    ReadResourceRequestSchema,
+    (req: ReadResourceRequest) => handleResourceCall(req)
+  );
+
+  server.setRequestHandler(ListToolsRequestSchema, (req: ListToolsRequest) =>
+    handleListTools(req)
+  );
+
+  server.setRequestHandler(CallToolRequestSchema, (req: CallToolRequest) =>
+    handleToolCall(req)
+  );
+
+  server.setRequestHandler(
+    ListPromptsRequestSchema,
+    (req: ListPromptsRequest) => handleListPrompts(req)
+  );
+
+  server.setRequestHandler(GetPromptRequestSchema, (req: GetPromptRequest) =>
+    handleGetPrompt(req)
+  );
+
+  const transport = new StdioServerTransport();
+
+  try {
+    await server.connect(transport);
+    return transport;
+  } catch (error) {
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 }
 
-// Run the server
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  const apiKey = process.argv[2];
+  if (!apiKey) {
+    console.error(
+      "API key is required. Usage: systemprompt-agent-server <API_KEY>"
+    );
+    process.exit(1);
+  }
+  startServer(apiKey).catch((error: Error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+}

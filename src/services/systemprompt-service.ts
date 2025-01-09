@@ -1,124 +1,127 @@
-import {
-  CreatePromptInput,
-  EditPromptInput,
-  CreateBlockInput,
-  EditBlockInput,
-  PromptCreationResult,
-  BlockCreationResult,
+import type {
+  SystempromptBlockRequest,
+  SystempromptPromptRequest,
+  SystempromptBlockResponse,
+  SystempromptPromptResponse,
 } from "../types/index.js";
 
 export class SystemPromptService {
-  private static instance: SystemPromptService;
+  private static instance: SystemPromptService | null = null;
+  private apiKey: string;
   private baseUrl: string;
-  private apiKey: string | null = null;
 
-  private constructor() {
+  private constructor(apiKey: string) {
+    if (!apiKey) {
+      throw new Error("API key is required");
+    }
+    this.apiKey = apiKey;
     this.baseUrl = "https://api.systemprompt.io/v1";
   }
 
-  static getInstance(): SystemPromptService {
+  public static initialize(apiKey: string): void {
     if (!SystemPromptService.instance) {
-      SystemPromptService.instance = new SystemPromptService();
+      SystemPromptService.instance = new SystemPromptService(apiKey);
+    }
+  }
+
+  public static getInstance(): SystemPromptService {
+    if (!SystemPromptService.instance) {
+      throw new Error(
+        "SystemPromptService must be initialized with an API key first"
+      );
     }
     return SystemPromptService.instance;
   }
 
-  initialize(key: string) {
-    this.apiKey = key;
-  }
-
   private async request<T>(
     endpoint: string,
-    method: string = "GET",
+    method: string,
     data?: any
   ): Promise<T> {
-    if (!this.apiKey) {
-      throw new Error(
-        "Service not initialized. Call initialize() with API key first."
-      );
-    }
-
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": this.apiKey,
-      },
-      body: data ? JSON.stringify(data) : undefined,
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`API Error Response: ${text}`);
-      throw new Error(`API request failed: ${response.statusText} - ${text}`);
-    }
-
     try {
-      const text = await response.text();
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": this.apiKey,
+        },
+        body: data ? JSON.stringify(data) : undefined,
+      });
+
+      let responseData;
       try {
-        return JSON.parse(text);
+        responseData = await response.json();
       } catch (e) {
-        console.error(`Failed to parse JSON response: ${text}`);
-        throw new Error(
-          `Invalid JSON response from API: ${text.slice(0, 100)}...`
-        );
+        throw new Error("API request failed");
       }
-    } catch (error) {
-      console.error("Error processing response:", error);
-      throw error;
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("Invalid API key");
+        }
+        throw new Error(responseData.message || "API request failed");
+      }
+
+      return responseData;
+    } catch (error: any) {
+      if (error.message) {
+        throw error;
+      }
+      throw new Error("API request failed");
     }
   }
 
-  async getAllPrompt(): Promise<PromptCreationResult[]> {
-    return this.request<PromptCreationResult[]>("/prompt");
+  async getAllPrompts(): Promise<SystempromptPromptResponse[]> {
+    return this.request<SystempromptPromptResponse[]>("/prompt", "GET");
   }
 
-  async getPrompt(id: string): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>(`/prompt/${id}`);
-  }
-
-  async listblock(): Promise<BlockCreationResult[]> {
-    return this.request<BlockCreationResult[]>("/block");
-  }
-
-  async getBlock(id: string): Promise<BlockCreationResult> {
-    return this.request<BlockCreationResult>(`/block/${id}`);
-  }
-
-  async createBlock(data: CreateBlockInput): Promise<BlockCreationResult> {
-    return this.request<BlockCreationResult>("/block", "POST", data);
-  }
-
-  async updateBlock(
-    id: string,
-    data: EditBlockInput
-  ): Promise<BlockCreationResult> {
-    return this.request<BlockCreationResult>(`/block/${id}`, "PUT", data);
-  }
-
-  async deleteBlock(id: string): Promise<void> {
-    return this.request<void>(`/block/${id}`, "DELETE");
-  }
-
-  async createPrompt(data: CreatePromptInput): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>("/prompt", "POST", data);
-  }
-
-  async updatePrompt(
-    id: string,
-    data: EditPromptInput
-  ): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>(`/prompt/${id}`, "PUT", data);
+  async createPrompt(
+    data: SystempromptPromptRequest
+  ): Promise<SystempromptPromptResponse> {
+    return this.request<SystempromptPromptResponse>("/prompt", "POST", data);
   }
 
   async editPrompt(
-    id: string,
-    data: EditPromptInput
-  ): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>(`/prompt/${id}`, "PUT", data);
+    uuid: string,
+    data: Partial<SystempromptPromptRequest>
+  ): Promise<SystempromptPromptResponse> {
+    return this.request<SystempromptPromptResponse>(
+      `/prompt/${uuid}`,
+      "PUT",
+      data
+    );
   }
 
-  async deletePrompt(id: string): Promise<void> {
-    return this.request<void>(`/prompt/${id}`, "DELETE");
+  async createBlock(
+    data: SystempromptBlockRequest
+  ): Promise<SystempromptBlockResponse> {
+    return this.request<SystempromptBlockResponse>("/block", "POST", data);
+  }
+
+  async editBlock(
+    uuid: string,
+    data: Partial<SystempromptBlockRequest>
+  ): Promise<SystempromptBlockResponse> {
+    return this.request<SystempromptBlockResponse>(
+      `/block/${uuid}`,
+      "PUT",
+      data
+    );
+  }
+
+  async listBlocks(): Promise<SystempromptBlockResponse[]> {
+    return this.request<SystempromptBlockResponse[]>("/block", "GET");
+  }
+
+  async getBlock(blockId: string): Promise<SystempromptBlockResponse> {
+    return this.request<SystempromptBlockResponse>(`/block/${blockId}`, "GET");
+  }
+
+  async deletePrompt(uuid: string): Promise<void> {
+    return this.request<void>(`/prompt/${uuid}`, "DELETE");
+  }
+
+  async deleteBlock(uuid: string): Promise<void> {
+    return this.request<void>(`/block/${uuid}`, "DELETE");
   }
 }

@@ -1,33 +1,29 @@
-import { SystemPromptService } from "../services/systemprompt-service.js";
-import type {
-  ListResourcesRequest,
-  ListResourcesResult,
+import {
   ReadResourceRequest,
+  ListResourcesResult,
   ReadResourceResult,
+  ListResourcesRequest,
 } from "@modelcontextprotocol/sdk/types.js";
-
-let systemPromptService: SystemPromptService;
-
-export function initializeService(apiKey: string) {
-  systemPromptService = SystemPromptService.getInstance();
-  systemPromptService.initialize(apiKey);
-}
+import { SystemPromptService } from "../services/systemprompt-service.js";
+import {
+  mapBlockToReadResourceResult,
+  mapBlocksToListResourcesResult,
+} from "../utils/mcp-mappers.js";
 
 export async function handleListResources(
   request: ListResourcesRequest
 ): Promise<ListResourcesResult> {
   try {
-    const blocks = await systemPromptService.listblock();
-    return {
-      resources: blocks.map((block) => ({
-        uri: `resource:///block/${block.id}`,
-        name: block.metadata.title,
-        description: block.metadata.description ?? "",
-        mimeType: "text/plain",
-      })),
-    };
+    const service = SystemPromptService.getInstance();
+    const blocks = await service.listBlocks();
+    return mapBlocksToListResourcesResult(blocks);
   } catch (error: any) {
-    throw new Error(`Failed to list resources: ${error}`);
+    console.error("Failed to fetch blocks:", error);
+    throw new Error(
+      `Failed to fetch blocks from systemprompt.io: ${
+        error.message || "Unknown error"
+      }`
+    );
   }
 }
 
@@ -35,6 +31,7 @@ export async function handleResourceCall(
   request: ReadResourceRequest
 ): Promise<ReadResourceResult> {
   try {
+    const service = SystemPromptService.getInstance();
     const { uri } = request.params;
     const match = uri.match(/^resource:\/\/\/block\/(.+)$/);
 
@@ -45,31 +42,14 @@ export async function handleResourceCall(
     }
 
     const blockId = match[1];
-    return await fetchResource(blockId);
+    const block = await service.getBlock(blockId);
+    return mapBlockToReadResourceResult(block);
   } catch (error: any) {
+    console.error("Failed to fetch block:", error);
     throw new Error(
       `Failed to fetch block from systemprompt.io: ${
         error.message || "Unknown error"
       }`
     );
   }
-}
-
-async function fetchResource(blockId: string): Promise<ReadResourceResult> {
-  const block = await systemPromptService.getBlock(blockId);
-  return {
-    contents: [
-      {
-        uri: `resource:///block/${blockId}`,
-        mimeType: "text/plain",
-        text: block.content,
-        metadata: {
-          id: block.id,
-          type: "block",
-          name: block.metadata.title,
-          description: block.metadata.description || "",
-        },
-      },
-    ],
-  };
 }

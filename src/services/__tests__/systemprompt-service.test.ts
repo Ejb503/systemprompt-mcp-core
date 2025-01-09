@@ -1,371 +1,391 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SystemPromptService } from "../systemprompt-service.js";
-import type {
-  CreatePromptInput,
-  EditPromptInput,
-  CreateBlockInput,
-  EditBlockInput,
-  PromptCreationResult,
-} from "../../types/index.js";
+import type { SystempromptPromptResponse } from "../../types/index.js";
+
+// Mock fetch
+const mockFetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    text: () => Promise.resolve(""),
+    json: () => Promise.resolve({}),
+  })
+) as jest.Mock;
+
+global.fetch = mockFetch as unknown as typeof fetch;
 
 describe("SystemPromptService", () => {
   let service: SystemPromptService;
   const mockApiKey = "test-api-key";
 
   beforeEach(() => {
-    // Reset the module state
-    jest.resetModules();
-    // Reset the service before each test
+    jest.clearAllMocks();
+    // Reset the instance before each test
+    (SystemPromptService as any).instance = null;
+    SystemPromptService.initialize(mockApiKey);
     service = SystemPromptService.getInstance();
-    service.initialize(mockApiKey);
-    // Mock fetch globally
-    global.fetch = jest.fn(
-      async (
-        _input: RequestInfo | URL,
-        _init?: RequestInit
-      ): Promise<Response> =>
+  });
+
+  describe("initialization", () => {
+    it("should throw error when initialized without API key", () => {
+      (SystemPromptService as any).instance = null;
+      expect(() => SystemPromptService.initialize("")).toThrow(
+        "API key is required"
+      );
+    });
+
+    it("should throw error when getInstance called before initialization", () => {
+      (SystemPromptService as any).instance = null;
+      expect(() => SystemPromptService.getInstance()).toThrow(
+        "SystemPromptService must be initialized with an API key first"
+      );
+    });
+  });
+
+  describe("request error handling", () => {
+    it("should handle invalid API key", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 403,
+          json: () => Promise.resolve({ message: "Invalid API key" }),
+        })
+      );
+
+      await expect(service.getAllPrompts()).rejects.toThrow("Invalid API key");
+    });
+
+    it("should handle network errors", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.reject(new Error("API request failed"))
+      );
+      await expect(service.getAllPrompts()).rejects.toThrow(
+        "API request failed"
+      );
+    });
+
+    it("should handle invalid JSON response", async () => {
+      mockFetch.mockImplementationOnce(() =>
         Promise.resolve({
           ok: true,
-          text: () => Promise.resolve("{}"),
-          json: () => Promise.resolve({}),
-          headers: new Headers(),
-          redirected: false,
-          status: 200,
-          statusText: "OK",
-          type: "basic" as ResponseType,
-          url: "",
-          clone: () => new Response(),
-          body: null,
-          bodyUsed: false,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          blob: () => Promise.resolve(new Blob()),
-          formData: () => Promise.resolve(new FormData()),
-        } as Response)
-    ) as unknown as typeof global.fetch;
-  });
+          json: () => Promise.reject(new Error("Invalid JSON")),
+        })
+      );
 
-  describe("initialization and configuration", () => {
-    it("should initialize with API key", () => {
-      const service = SystemPromptService.getInstance();
-      expect(() => service.initialize(mockApiKey)).not.toThrow();
-    });
-
-    it("should throw error when not initialized", async () => {
-      await jest.isolateModules(async () => {
-        const { SystemPromptService } = await import(
-          "../systemprompt-service.js"
-        );
-        const uninitializedService = SystemPromptService.getInstance();
-        await expect(uninitializedService.getPrompt("test-id")).rejects.toThrow(
-          "Service not initialized"
-        );
-        expect(global.fetch).not.toHaveBeenCalled();
-      });
-    });
-
-    it("should initialize service with correct base URL", () => {
-      const service = SystemPromptService.getInstance();
-      expect((service as any).baseUrl).toBe("https://api.systemprompt.io/v1");
+      await expect(service.getAllPrompts()).rejects.toThrow(
+        "API request failed"
+      );
     });
   });
 
-  describe("API requests", () => {
-    describe("Error handling", () => {
-      it("should handle API errors", async () => {
-        (global.fetch as jest.Mock).mockImplementationOnce(() =>
-          Promise.resolve({
-            ok: false,
-            statusText: "Not Found",
-            text: () => Promise.resolve("Resource not found"),
-            headers: new Headers(),
-            redirected: false,
-            status: 404,
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
+  describe("createPrompt", () => {
+    const validPromptData: SystempromptPromptResponse = {
+      id: "test-uuid",
+      instruction: {
+        static: "Test instruction",
+        dynamic: "",
+        state: "",
+      },
+      input: {
+        name: "test_input",
+        description: "Test input description",
+        type: ["message"],
+        schema: {},
+      },
+      output: {
+        name: "test_output",
+        description: "Test output description",
+        type: ["message"],
+        schema: {},
+      },
+      metadata: {
+        title: "Test prompt",
+        description: "Test description",
+        created: "2024-01-01",
+        updated: "2024-01-01",
+        version: 1,
+        status: "draft",
+        author: "test",
+        log_message: "Created",
+      },
+      _link: "test-link",
+    };
 
-        await expect(service["request"]("/test")).rejects.toThrow(
-          "API request failed: Not Found"
-        );
-      });
+    it("should create a prompt successfully", async () => {
+      const mockResponse: SystempromptPromptResponse = {
+        ...validPromptData,
+      };
 
-      it("should handle JSON parsing errors", async () => {
-        (global.fetch as jest.Mock).mockImplementationOnce(() =>
-          Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve("invalid json"),
-            headers: new Headers(),
-            redirected: false,
-            status: 200,
-            statusText: "OK",
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
 
-        await expect(service["request"]("/test")).rejects.toThrow(
-          "Invalid JSON"
-        );
-      });
+      const result = await service.createPrompt(validPromptData);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.systemprompt.io/v1/prompt",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": mockApiKey,
+          },
+          body: JSON.stringify(validPromptData),
+        }
+      );
+
+      expect(result).toEqual(mockResponse);
     });
 
-    describe("Prompt operations", () => {
-      const mockPrompt: PromptCreationResult = {
-        id: "test-id",
+    it("should handle API errors", async () => {
+      const errorMessage = "Invalid input";
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({ message: errorMessage }),
+        })
+      );
+
+      await expect(service.createPrompt(validPromptData)).rejects.toThrow(
+        errorMessage
+      );
+    });
+  });
+
+  describe("editPrompt", () => {
+    const uuid = "test-uuid";
+    const updateData: Partial<SystempromptPromptResponse> = {
+      instruction: {
+        static: "Updated instruction",
+        dynamic: "",
+        state: "",
+      },
+      metadata: {
+        title: "Updated title",
+        description: "Test description",
+        created: "2024-01-01",
+        updated: "2024-01-01",
+        version: 1,
+        status: "draft",
+        author: "test",
+        log_message: "Updated",
+      },
+    };
+
+    it("should edit a prompt successfully", async () => {
+      const mockResponse: SystempromptPromptResponse = {
+        id: uuid,
+        instruction: {
+          static: "Updated instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test_input",
+          description: "Test input description",
+          type: ["message"],
+          schema: {},
+        },
+        output: {
+          name: "test_output",
+          description: "Test output description",
+          type: ["message"],
+          schema: {},
+        },
         metadata: {
-          title: "Test Prompt",
+          title: "Updated title",
           description: "Test description",
           created: "2024-01-01",
           updated: "2024-01-01",
           version: 1,
           status: "draft",
           author: "test",
-          log_message: "Initial creation",
-        },
-        instruction: {
-          static: "Test instruction",
-        },
-        input: {
-          name: "test_input",
-          description: "Test input",
-          type: ["message"],
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-        output: {
-          name: "test_output",
-          description: "Test output",
-          type: ["message"],
-          schema: {
-            type: "object",
-            properties: {},
-          },
+          log_message: "Updated",
         },
         _link: "test-link",
       };
 
-      beforeEach(() => {
-        (global.fetch as jest.Mock).mockImplementation(() =>
-          Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify(mockPrompt)),
-            headers: new Headers(),
-            redirected: false,
-            status: 200,
-            statusText: "OK",
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
-      });
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
 
-      it("should get all prompts", async () => {
-        (global.fetch as jest.Mock).mockImplementationOnce(() =>
-          Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify([mockPrompt])),
-            headers: new Headers(),
-            redirected: false,
-            status: 200,
-            statusText: "OK",
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
+      const result = await service.editPrompt(uuid, updateData);
 
-        const result = await service.getAllPrompt();
-        expect(result).toEqual([mockPrompt]);
-      });
-
-      it("should get a single prompt", async () => {
-        const result = await service.getPrompt("test-id");
-        expect(result).toEqual(mockPrompt);
-      });
-
-      it("should create a prompt", async () => {
-        const input: CreatePromptInput = {
-          metadata: {
-            title: "Test Prompt",
-            description: "Test description",
+      expect(mockFetch).toHaveBeenCalledWith(
+        `https://api.systemprompt.io/v1/prompt/${uuid}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": mockApiKey,
           },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should handle API errors", async () => {
+      const errorMessage = "Prompt not found";
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({ message: errorMessage }),
+        })
+      );
+
+      await expect(service.editPrompt(uuid, updateData)).rejects.toThrow(
+        errorMessage
+      );
+    });
+  });
+
+  describe("block operations", () => {
+    const mockBlock = {
+      id: "test-block-id",
+      content: "Test content",
+      prefix: "test-prefix",
+      metadata: {
+        title: "Test Block",
+        description: "Test description",
+        created: "2024-01-01",
+        updated: "2024-01-01",
+      },
+      _link: "test-link",
+    };
+
+    it("should create a block successfully", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockBlock),
+        })
+      );
+
+      const result = await service.createBlock({
+        content: mockBlock.content,
+        prefix: mockBlock.prefix,
+        metadata: {
+          title: mockBlock.metadata.title,
+          description: mockBlock.metadata.description,
+        },
+      });
+
+      expect(result).toEqual(mockBlock);
+    });
+
+    it("should edit a block successfully", async () => {
+      const updatedBlock = { ...mockBlock, content: "Updated content" };
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(updatedBlock),
+        })
+      );
+
+      const result = await service.editBlock(mockBlock.id, {
+        content: "Updated content",
+      });
+      expect(result).toEqual(updatedBlock);
+    });
+
+    it("should list blocks successfully", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([mockBlock]),
+        })
+      );
+
+      const result = await service.listBlocks();
+      expect(result).toEqual([mockBlock]);
+    });
+
+    it("should get a block successfully", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockBlock),
+        })
+      );
+
+      const result = await service.getBlock(mockBlock.id);
+      expect(result).toEqual(mockBlock);
+    });
+
+    it("should delete a block successfully", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        })
+      );
+
+      await expect(service.deleteBlock(mockBlock.id)).resolves.not.toThrow();
+    });
+  });
+
+  describe("prompt operations", () => {
+    it("should get all prompts successfully", async () => {
+      const mockPrompts = [
+        {
+          id: "test-uuid",
           instruction: {
             static: "Test instruction",
+            dynamic: "",
+            state: "",
           },
           input: {
             name: "test_input",
-            description: "Test input",
+            description: "Test input description",
             type: ["message"],
-            schema: {
-              type: "object",
-              properties: {},
-            },
+            schema: {},
           },
           output: {
             name: "test_output",
-            description: "Test output",
+            description: "Test output description",
             type: ["message"],
-            schema: {
-              type: "object",
-              properties: {},
-            },
+            schema: {},
           },
-        };
-
-        const result = await service.createPrompt(input);
-        expect(result).toEqual(mockPrompt);
-      });
-
-      it("should update a prompt", async () => {
-        const input: EditPromptInput = {
-          uuid: "test-id",
           metadata: {
-            title: "Updated Prompt",
-            description: "Updated description",
+            title: "Test prompt",
+            description: "Test description",
+            created: "2024-01-01",
+            updated: "2024-01-01",
+            version: 1,
+            status: "draft",
+            author: "test",
+            log_message: "Created",
           },
-        };
+          _link: "test-link",
+        },
+      ];
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockPrompts),
+        })
+      );
 
-        const result = await service.updatePrompt("test-id", input);
-        expect(result).toEqual(mockPrompt);
-      });
-
-      it("should edit a prompt", async () => {
-        const input: EditPromptInput = {
-          uuid: "test-id",
-          metadata: {
-            title: "Edited Prompt",
-            description: "Edited description",
-          },
-        };
-
-        const result = await service.editPrompt("test-id", input);
-        expect(result).toEqual(mockPrompt);
-      });
-
-      it("should delete a prompt", async () => {
-        await expect(service.deletePrompt("test-id")).resolves.not.toThrow();
-      });
+      const result = await service.getAllPrompts();
+      expect(result).toEqual(mockPrompts);
     });
 
-    describe("Block operations", () => {
-      const mockBlock = {
-        id: "test-block-id",
-        content: "Test content",
-        metadata: {
-          title: "Test Block",
-          description: "Test description",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-        },
-      };
+    it("should delete a prompt successfully", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        })
+      );
 
-      beforeEach(() => {
-        (global.fetch as jest.Mock).mockImplementation(() =>
-          Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify(mockBlock)),
-            headers: new Headers(),
-            redirected: false,
-            status: 200,
-            statusText: "OK",
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
-      });
-
-      it("should list all blocks", async () => {
-        (global.fetch as jest.Mock).mockImplementationOnce(() =>
-          Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify([mockBlock])),
-            headers: new Headers(),
-            redirected: false,
-            status: 200,
-            statusText: "OK",
-            type: "basic",
-            url: "",
-            clone: () => new Response(),
-            body: null,
-            bodyUsed: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-            blob: () => Promise.resolve(new Blob()),
-            formData: () => Promise.resolve(new FormData()),
-          } as Response)
-        );
-
-        const result = await service.listblock();
-        expect(result).toEqual([mockBlock]);
-      });
-
-      it("should get a single block", async () => {
-        const result = await service.getBlock("test-block-id");
-        expect(result).toEqual(mockBlock);
-      });
-
-      it("should create a block", async () => {
-        const input: CreateBlockInput = {
-          metadata: {
-            title: "Test Block",
-            description: "Test description",
-          },
-          content: "Test content",
-        };
-
-        const result = await service.createBlock(input);
-        expect(result).toEqual(mockBlock);
-      });
-
-      it("should update a block", async () => {
-        const input: EditBlockInput = {
-          metadata: {
-            title: "Updated Block",
-            description: "Updated description",
-          },
-          content: "Updated content",
-        };
-
-        const result = await service.updateBlock("test-block-id", input);
-        expect(result).toEqual(mockBlock);
-      });
-
-      it("should delete a block", async () => {
-        await expect(
-          service.deleteBlock("test-block-id")
-        ).resolves.not.toThrow();
-      });
+      await expect(service.deletePrompt("test-uuid")).resolves.not.toThrow();
     });
   });
 });

@@ -1,8 +1,18 @@
 import type { JSONSchema7 } from "json-schema";
 
-export interface Block {
+export interface SystempromptBlockRequest {
+  content: string;
+  prefix: string;
+  metadata: {
+    title: string;
+    description: string | null;
+  };
+}
+
+export interface SystempromptBlockResponse {
   id: string;
   content: string;
+  prefix: string;
   metadata: {
     title: string;
     description: string | null;
@@ -16,32 +26,7 @@ export interface Block {
   _link?: string;
 }
 
-export interface BlockCreationResult {
-  id: string;
-  content: string;
-  metadata: {
-    title: string;
-    description: string;
-  };
-}
-
-export interface CreateBlockInput {
-  content: string;
-  metadata: {
-    title: string;
-    description: string;
-  };
-}
-
-export interface EditBlockInput {
-  content?: string;
-  metadata?: {
-    title?: string;
-    description?: string;
-  };
-}
-
-export interface CreatePromptInput {
+export interface SystempromptPromptRequest {
   metadata: {
     title: string;
     description: string;
@@ -50,49 +35,38 @@ export interface CreatePromptInput {
     static: string;
   };
   input: {
-    name: string;
-    description: string;
     type: string[];
-    schema: JSONSchema7;
   };
   output: {
-    name: string;
+    type: string[];
+  };
+}
+
+export interface SystempromptPromptAPIRequest {
+  metadata: {
+    title: string;
     description: string;
+  };
+  instruction: {
+    static: string;
+    dynamic: string;
+    state: string;
+  };
+  input: {
     type: string[];
     schema: JSONSchema7;
+    name: string;
+    description: string;
+  };
+  output: {
+    type: string[];
+    schema: JSONSchema7;
+    name: string;
+    description: string;
   };
 }
 
-export interface EditPromptInput {
-  uuid: string;
-  metadata?: {
-    title?: string;
-    description?: string;
-  };
-  instruction?: {
-    static?: string;
-  };
-  input?: {
-    name?: string;
-    description?: string;
-    type?: string[];
-    schema?: {
-      type?: string;
-      properties?: Record<string, any>;
-    };
-  };
-  output?: {
-    name?: string;
-    description?: string;
-    type?: string[];
-    schema?: {
-      type?: string;
-      properties?: Record<string, any>;
-    };
-  };
-}
-
-export interface PromptCreationResult {
+export interface SystempromptPromptResponse {
   id: string;
   metadata: {
     title: string;
@@ -106,6 +80,8 @@ export interface PromptCreationResult {
   };
   instruction: {
     static: string;
+    dynamic: string;
+    state: string;
   };
   input: {
     name: string;

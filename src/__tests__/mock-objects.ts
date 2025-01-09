@@ -1,12 +1,14 @@
-import type { PromptCreationResult } from "../../types/index.js";
 import type { Prompt } from "@modelcontextprotocol/sdk/types.js";
 import type { JSONSchema7TypeName } from "json-schema";
+import type { SystempromptPromptResponse } from "../types/index.js";
 
 // Basic mock with simple string input
-export const mockSystemPromptResult: PromptCreationResult = {
+export const mockSystemPromptResult: SystempromptPromptResponse = {
   id: "123",
   instruction: {
     static: "You are a helpful assistant that helps users write documentation.",
+    dynamic: "",
+    state: "",
   },
   input: {
     name: "message",
@@ -52,9 +54,11 @@ export const mockSystemPromptResult: PromptCreationResult = {
 };
 
 // Mock with array input
-export const mockArrayPromptResult: PromptCreationResult = {
+export const mockArrayPromptResult: SystempromptPromptResponse = {
   id: "124",
   instruction: {
+    dynamic: "",
+    state: "",
     static:
       "You are a helpful assistant that helps users manage their todo lists.",
   },
@@ -114,9 +118,11 @@ export const mockArrayPromptResult: PromptCreationResult = {
 };
 
 // Mock with nested object input
-export const mockNestedPromptResult: PromptCreationResult = {
+export const mockNestedPromptResult: SystempromptPromptResponse = {
   id: "125",
   instruction: {
+    dynamic: "",
+    state: "",
     static:
       "You are a helpful assistant that helps users manage their contacts.",
   },
