@@ -1,40 +1,26 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { jest } from "@jest/globals";
 import { SystemPromptService } from "../../services/systemprompt-service.js";
 import {
-  createPromptHandler,
-  editPromptHandler,
   handleListPrompts,
   handleGetPrompt,
+  initializeService,
+  convertToMCPPrompt,
 } from "../prompt-handlers.js";
-import type {
-  CreatePromptInput,
-  PromptCreationResult,
-} from "../../types/index.js";
+import type { PromptCreationResult } from "../../types/index.js";
+import {
+  mockSystemPromptResult,
+  mockArrayPromptResult,
+  mockNestedPromptResult,
+  mockMCPPrompt,
+  mockArrayMCPPrompt,
+  mockNestedMCPPrompt,
+} from "./mock-objects.js";
 
 jest.mock("../../services/systemprompt-service.js");
 
-const mockService = {
-  getAllPrompts: jest.fn(),
-  createPrompt: jest.fn(),
-  editPrompt: jest.fn(),
-} as unknown as jest.Mocked<SystemPromptService>;
-
 describe("Prompt Handlers", () => {
   const mockPrompt: PromptCreationResult = {
-    id: "test-uuid",
-    instruction: {
-      static: "Test instruction",
-    },
-    input: {
-      name: "test_input",
-      description: "Test input",
-      type: ["message"],
-    },
-    output: {
-      name: "test_output",
-      description: "Test output",
-      type: ["message"],
-    },
+    id: "test-id",
     metadata: {
       title: "Test Prompt",
       description: "Test description",
@@ -43,212 +29,338 @@ describe("Prompt Handlers", () => {
       version: 1,
       status: "draft",
       author: "test",
-      log_message: "Created",
+      log_message: "Initial creation",
+    },
+    instruction: {
+      static: "Test instruction",
+    },
+    input: {
+      name: "test_input",
+      description: "Test input",
+      type: ["message"],
+      schema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    output: {
+      name: "test_output",
+      description: "Test output",
+      type: ["message"],
+      schema: {
+        type: "object",
+        properties: {},
+      },
     },
     _link: "test-link",
   };
+
+  const mockService = {
+    baseUrl: "https://api.systemprompt.io/v1",
+    getAllPrompt: jest.fn<() => Promise<PromptCreationResult[]>>(),
+    getPrompt: jest.fn<(id: string) => Promise<PromptCreationResult>>(),
+    createPrompt: jest.fn<(data: any) => Promise<PromptCreationResult>>(),
+    editPrompt:
+      jest.fn<(id: string, data: any) => Promise<PromptCreationResult>>(),
+    request: jest.fn(),
+    initialize: jest.fn(),
+    listblock: jest.fn(),
+    getBlock: jest.fn(),
+    createBlock: jest.fn(),
+    updateBlock: jest.fn(),
+    deleteBlock: jest.fn(),
+    updatePrompt: jest.fn(),
+    deletePrompt: jest.fn(),
+  } as unknown as jest.Mocked<SystemPromptService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     (
       SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-    ).mockImplementation(() => mockService);
+    ).mockImplementation(
+      () => mockService as unknown as jest.Mocked<SystemPromptService>
+    );
+    initializeService("test-api-key");
   });
 
   describe("handleListPrompts", () => {
-    it("should return list of prompts with correct schema", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should list prompts", async () => {
+      mockService.getAllPrompt.mockResolvedValueOnce([mockPrompt]);
 
-      const result = await handleListPrompts(mockService);
+      const result = await handleListPrompts({
+        method: "prompts/list",
+        params: {},
+      });
 
-      expect(result).toHaveProperty("prompts");
-      expect(result.prompts).toHaveLength(1);
-      expect(result.prompts[0]).toEqual({
-        name: mockPrompt.metadata.title,
-        description: mockPrompt.metadata.description,
-        messages: [
+      expect(result).toEqual({
+        prompts: [
           {
-            role: "system",
-            content: {
-              type: "text",
-              text: mockPrompt.instruction.static,
-            },
+            name: mockPrompt.metadata.title,
+            description: mockPrompt.metadata.description,
+            messages: [
+              {
+                role: "assistant",
+                content: {
+                  type: "text",
+                  text: mockPrompt.instruction.static,
+                },
+              },
+            ],
+            arguments: [],
           },
         ],
-        input_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.input.description,
-            },
-          },
-          required: [],
-        },
-        output_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.output.description,
-            },
-          },
-          required: [],
-        },
       });
+      expect(mockService.getAllPrompt).toHaveBeenCalled();
     });
 
-    it("should use default service when not provided", async () => {
-      const defaultMockService = {
-        getAllPrompts: jest
-          .fn<() => Promise<PromptCreationResult[]>>()
-          .mockResolvedValue([mockPrompt]),
-      } as unknown as jest.Mocked<SystemPromptService>;
+    it("should handle errors", async () => {
+      mockService.getAllPrompt.mockRejectedValueOnce(
+        new Error("API request failed")
+      );
 
-      (
-        SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-      ).mockImplementation(() => defaultMockService);
-
-      const result = await handleListPrompts();
-      expect(result).toHaveProperty("prompts");
-      expect(result.prompts).toHaveLength(1);
+      await expect(
+        handleListPrompts({
+          method: "prompts/list",
+          params: {},
+        })
+      ).rejects.toThrow("Failed to fetch prompts from systemprompt.io");
     });
   });
 
   describe("handleGetPrompt", () => {
-    it("should return prompt by name", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should get a prompt", async () => {
+      mockService.getAllPrompt.mockResolvedValueOnce([mockPrompt]);
 
-      const result = await handleGetPrompt(
-        {
-          params: { name: "Test Prompt" },
+      const result = await handleGetPrompt({
+        method: "prompts/get",
+        params: {
+          name: "Test Prompt",
         },
-        mockService
-      );
+      });
 
       expect(result).toEqual({
         name: mockPrompt.metadata.title,
         description: mockPrompt.metadata.description,
         messages: [
           {
-            role: "system",
+            role: "assistant",
             content: {
               type: "text",
               text: mockPrompt.instruction.static,
             },
           },
         ],
-        input_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.input.description,
-            },
-          },
-          required: [],
-        },
-        output_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.output.description,
-            },
-          },
-          required: [],
-        },
+        _meta: {},
+        tools: [],
       });
+      expect(mockService.getAllPrompt).toHaveBeenCalled();
     });
 
-    it("should throw error for unknown prompt", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should handle not found", async () => {
+      mockService.getAllPrompt.mockResolvedValueOnce([mockPrompt]);
 
       await expect(
-        handleGetPrompt(
-          {
-            params: { name: "Unknown Prompt" },
+        handleGetPrompt({
+          method: "prompts/get",
+          params: {
+            name: "Non-existent Prompt",
           },
-          mockService
-        )
-      ).rejects.toThrow("Unknown prompt");
+        })
+      ).rejects.toThrow("Prompt not found");
+    });
+
+    it("should handle errors", async () => {
+      mockService.getAllPrompt.mockRejectedValueOnce(
+        new Error("API request failed")
+      );
+
+      await expect(
+        handleGetPrompt({
+          method: "prompts/get",
+          params: {
+            name: "Test Prompt",
+          },
+        })
+      ).rejects.toThrow("Failed to fetch prompt from systemprompt.io");
     });
   });
 
-  describe("createPromptHandler", () => {
-    const validInput: CreatePromptInput = {
-      instruction: {
-        static: "Test instruction",
-      },
-      input: {
-        name: "test_input",
-        description: "Test input",
-        type: ["message"],
-      },
-      output: {
-        name: "test_output",
-        description: "Test output",
-        type: ["message"],
-      },
-      metadata: {
-        title: "Test Prompt",
-        description: "Test description",
-      },
-    };
-
-    it("should create a prompt successfully", async () => {
-      mockService.createPrompt.mockResolvedValue(mockPrompt);
-
-      const result = await createPromptHandler(mockService, validInput);
-
-      expect(result).toEqual(mockPrompt);
-      expect(mockService.createPrompt).toHaveBeenCalledWith(validInput);
+  describe("convertToMCPPrompt", () => {
+    it("should convert basic prompt with simple schema", () => {
+      const result = convertToMCPPrompt(mockSystemPromptResult);
+      expect(result).toEqual(mockMCPPrompt);
     });
 
-    it("should throw error for invalid input", async () => {
-      const invalidInput: Partial<CreatePromptInput> = {
-        input: validInput.input,
-        output: validInput.output,
-        metadata: validInput.metadata,
+    it("should convert prompt with array schema", () => {
+      const result = convertToMCPPrompt(mockArrayPromptResult);
+      expect(result).toEqual(mockArrayMCPPrompt);
+    });
+
+    it("should convert prompt with nested object schema", () => {
+      const result = convertToMCPPrompt(mockNestedPromptResult);
+      expect(result).toEqual(mockNestedMCPPrompt);
+    });
+
+    it("should handle empty properties", () => {
+      const promptWithEmptyProps = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
       };
-
-      await expect(
-        createPromptHandler(mockService, invalidInput as CreatePromptInput)
-      ).rejects.toThrow("Invalid input");
-    });
-  });
-
-  describe("editPromptHandler", () => {
-    const validInput: Partial<CreatePromptInput> = {
-      instruction: {
-        static: "Updated instruction",
-      },
-      metadata: {
-        title: "Updated Prompt",
-        description: "Test description",
-      },
-    };
-
-    it("should edit a prompt successfully", async () => {
-      mockService.editPrompt.mockResolvedValue(mockPrompt);
-
-      const result = await editPromptHandler(
-        mockService,
-        "test-uuid",
-        validInput
-      );
-
-      expect(result).toEqual(mockPrompt);
-      expect(mockService.editPrompt).toHaveBeenCalledWith(
-        "test-uuid",
-        validInput
-      );
+      const result = convertToMCPPrompt(promptWithEmptyProps);
+      expect(result.arguments).toEqual([]);
     });
 
-    it("should throw error for invalid UUID", async () => {
-      await expect(
-        editPromptHandler(mockService, "", validInput)
-      ).rejects.toThrow("Invalid UUID");
+    it("should handle null or invalid schema properties", () => {
+      const promptWithInvalidProps = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {
+              invalid1: null,
+              invalid2: true,
+              invalid3: "string",
+            },
+          },
+        },
+      };
+      const result = convertToMCPPrompt(promptWithInvalidProps);
+      expect(result.arguments).toEqual([]);
+    });
+
+    it("should handle schema property without description", () => {
+      const promptWithoutDesc = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {
+              test: {
+                type: "string",
+                // no description field
+              },
+            },
+            required: ["test"],
+          },
+        },
+      };
+      const result = convertToMCPPrompt(promptWithoutDesc);
+      expect(result.arguments).toEqual([
+        {
+          name: "test",
+          description: "",
+          required: true,
+        },
+      ]);
+    });
+
+    it("should handle schema without required field", () => {
+      const promptWithoutRequired = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {
+              test: {
+                type: "string",
+                description: "test field",
+              },
+            },
+            // no required field
+          },
+        },
+      };
+      const result = convertToMCPPrompt(promptWithoutRequired);
+      expect(result.arguments).toEqual([
+        {
+          name: "test",
+          description: "test field",
+          required: false,
+        },
+      ]);
+    });
+
+    it("should handle schema with non-object property type", () => {
+      const promptWithNonObjectProp = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {
+              test1: {
+                type: "string",
+                description: 123, // non-string description
+              },
+              test2: "not an object", // non-object property
+              test3: null, // null property
+            },
+            required: ["test1"],
+          },
+        },
+      };
+      const result = convertToMCPPrompt(promptWithNonObjectProp);
+      expect(result.arguments).toEqual([
+        {
+          name: "test1",
+          description: "123",
+          required: true,
+        },
+      ]);
+    });
+
+    it("should handle schema with falsy description values", () => {
+      const promptWithFalsyDesc = {
+        ...mockSystemPromptResult,
+        input: {
+          ...mockSystemPromptResult.input,
+          schema: {
+            type: "object",
+            properties: {
+              test1: {
+                type: "string",
+                description: "", // empty string
+              },
+              test2: {
+                type: "string",
+                description: null, // null description
+              },
+              test3: {
+                type: "string",
+                description: undefined, // undefined description
+              },
+            },
+            required: ["test1", "test2", "test3"],
+          },
+        },
+      };
+      const result = convertToMCPPrompt(promptWithFalsyDesc);
+      expect(result.arguments).toEqual([
+        {
+          name: "test1",
+          description: "",
+          required: true,
+        },
+        {
+          name: "test2",
+          description: "",
+          required: true,
+        },
+        {
+          name: "test3",
+          description: "",
+          required: true,
+        },
+      ]);
     });
   });
 });

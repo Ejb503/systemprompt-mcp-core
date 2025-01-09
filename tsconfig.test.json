@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ESNext",
     "moduleResolution": "node",
     "types": ["jest", "node"],
     "allowJs": true,

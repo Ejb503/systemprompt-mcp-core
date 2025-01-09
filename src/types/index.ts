@@ -1,95 +1,129 @@
-export interface Tool {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: string;
-    properties: Record<string, any>;
-    required: string[];
-  };
-}
+import type { JSONSchema7 } from "json-schema";
 
 export interface Block {
   id: string;
-  name: string;
-  description: string;
   content: string;
-  type: string;
-}
-
-export interface PromptTemplate {
-  title: string;
-  description: string;
-  systemPrompt: string;
-}
-
-export interface CreatePromptInput {
-  instruction: {
-    static: string;
-    state?: string;
-    dynamic?: string;
-  };
-  input: {
-    name: string;
-    description: string;
-    type: Array<"message" | "structured_data" | "artifact">;
-  };
-  output: {
-    name: string;
-    description: string;
-    type: Array<"message" | "structured_data" | "artifact">;
-  };
   metadata: {
     title: string;
     description: string;
-    tag?: string[];
-  };
-}
-
-export interface EditPromptInput extends Partial<CreatePromptInput> {
-  uuid: string;
-}
-
-export interface CreateBlockInput {
-  content: string;
-  prefix?: string;
-  metadata: {
-    title: string;
-    description: string;
-    tag?: string[];
-  };
-}
-
-export interface EditBlockInput extends Partial<CreateBlockInput> {
-  uuid: string;
-}
-
-export interface PromptCreationResult {
-  id: string;
-  instruction: CreatePromptInput["instruction"];
-  input: CreatePromptInput["input"];
-  output: CreatePromptInput["output"];
-  metadata: CreatePromptInput["metadata"] & {
     created: string;
     updated: string;
     version: number;
-    status: "draft" | "published" | "archived";
+    status: string;
     author: string;
     log_message: string;
   };
-  _link: string;
+  _link?: string;
 }
 
 export interface BlockCreationResult {
   id: string;
   content: string;
-  prefix?: string;
-  metadata: CreateBlockInput["metadata"] & {
+  metadata: {
+    title: string;
+    description: string;
+  };
+}
+
+export interface CreateBlockInput {
+  content: string;
+  metadata: {
+    title: string;
+    description: string;
+  };
+}
+
+export interface EditBlockInput {
+  content?: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+  };
+}
+
+export interface CreatePromptInput {
+  metadata: {
+    title: string;
+    description: string;
+  };
+  instruction: {
+    static: string;
+  };
+  input: {
+    name: string;
+    description: string;
+    type: string[];
+    schema: {
+      type: string;
+      properties: Record<string, any>;
+    };
+  };
+  output: {
+    name: string;
+    description: string;
+    type: string[];
+    schema: {
+      type: string;
+      properties: Record<string, any>;
+    };
+  };
+}
+
+export interface EditPromptInput {
+  uuid: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+  };
+  instruction?: {
+    static?: string;
+  };
+  input?: {
+    name?: string;
+    description?: string;
+    type?: string[];
+    schema?: {
+      type?: string;
+      properties?: Record<string, any>;
+    };
+  };
+  output?: {
+    name?: string;
+    description?: string;
+    type?: string[];
+    schema?: {
+      type?: string;
+      properties?: Record<string, any>;
+    };
+  };
+}
+
+export interface PromptCreationResult {
+  id: string;
+  metadata: {
+    title: string;
+    description: string;
     created: string;
     updated: string;
     version: number;
-    status: "draft" | "published" | "archived";
+    status: string;
     author: string;
     log_message: string;
+  };
+  instruction: {
+    static: string;
+  };
+  input: {
+    name: string;
+    description: string;
+    type: string[];
+    schema: JSONSchema7;
+  };
+  output: {
+    name: string;
+    description: string;
+    type: string[];
+    schema: JSONSchema7;
   };
   _link: string;
 }

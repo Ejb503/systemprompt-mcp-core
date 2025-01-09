@@ -8,7 +8,19 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node", "jest"],
+    "paths": {
+      "@modelcontextprotocol/sdk": [
+        "./node_modules/@modelcontextprotocol/sdk/dist/index.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/*": [
+        "./node_modules/@modelcontextprotocol/sdk/dist/*"
+      ]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts"]
