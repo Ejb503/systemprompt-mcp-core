@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6] - 2025-01-09
+
+### Changed
+
+- Enhanced README with comprehensive agent management capabilities
+- Added API key requirement notice and link to console
+- Updated tools section with accurate tool names and descriptions
+- Improved documentation structure and readability
+- Removed redundant testing documentation
+
 ## [1.0.5] - 2025-01-09
 
 ### Changed

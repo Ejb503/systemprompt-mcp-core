@@ -1,33 +1,54 @@
 # systemprompt-agent-server
 
-A specialized Model Context Protocol (MCP) server that integrates with [systemprompt.io](https://systemprompt.io) to provide powerful prompt management capabilities. This server enables seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to provide a complete voice-powered AI workflow solution.
+A specialized Model Context Protocol (MCP) server that integrates with [systemprompt.io](https://systemprompt.io) to provide powerful prompt management capabilities. This server enables
+seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to
+provide a complete voice-powered AI workflow solution.
+
+A specialized Model Context Protocol (MCP) server that enables you to create, manage, and extend AI agents through a powerful prompt and tool management system. This server works as the backend for creating sophisticated AI workflows by managing system prompts, tools, and agent configurations.
+
+An API KEY is required to use this server. You can get one [here](https://systemprompt.io/console).
+
+## Required Client
+
+This server is designed to work with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) - a voice-powered MCP client that provides the frontend interface. Please make sure to set up both components for the full functionality.
 
 ## Why Use This Server?
 
-- **Centralized Prompt Management**: Manage all your system prompts in one place with versioning and metadata support
-- **Type-Safe Integration**: Full TypeScript support for systemprompt.io's API with proper error handling
-- **MCP Compatibility**: Works seamlessly with [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) and other MCP-compatible clients like Claude Desktop
-- **Standardized Format**: Ensures your prompts follow systemprompt.io's proven format and best practices
+- **Agent Management**: Create and manage AI agents with customized system prompts and tool configurations
+- **Extensible Tool System**: Add, modify, and combine tools to enhance your agents' capabilities through MCP
+- **Prompt Management**: Centralized management of system prompts with versioning and metadata support
+- **Type-Safe Integration**: Full TypeScript support with proper error handling
+- **MCP Compatibility**: Works seamlessly with [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) and other MCP-compatible clients
+- **Open Source**: Free to use and modify under the MIT license
 
 ## Features
 
-### Resources
+### Agent Management
 
-- List and access notes via `note://` URIs
-- Each note has a title, content and metadata
-- Plain text mime type for simple content access
+- Create and configure AI agents with specific capabilities
+- Manage agent states and contexts
+- Define agent behaviors through system prompts
+- Monitor and debug agent interactions
 
 ### Tools
 
-- `create_note` - Create new text notes
-  - Takes title and content as required parameters
-  - Stores note in server state
+- Extend agent capabilities with custom tools
+- Built-in tools include:
+
+  - `create_prompt` - Create and manage text notes
+  - `edit_prompt` - Handle system prompt versionin
+  - `create_resource` - Update agent settings
+  - `edit_resource` - Update agent settings
+  - `list_resources` - Update agent settings
+  - `read_resource` - Update agent settings
+
+- Add your own tools through the MCP interface
 
 ### Prompts
 
-- `summarize_notes` - Generate a summary of all stored notes
-  - Includes all note contents as embedded resources
-  - Returns structured prompt for LLM summarization
+- Create and version system prompts
+- Manage prompt templates
+- Access structured prompts for various use cases
 
 ## Development
 
@@ -127,68 +148,6 @@ npm run test:coverage
 
 Tests are located in `__tests__` directories next to the files they test. The naming convention is `*.test.ts`.
 
-### Mocking Patterns
-
-#### Service Mocks
-
-When mocking services with ESM, follow this pattern:
-
-```typescript
-// 1. Import types first
-import type { MyType } from "../../types/index.js";
-
-// 2. Declare mock functions with proper types
-const mockMethod = jest.fn<(arg: string) => Promise<MyType>>();
-
-// 3. Set up the mock before imports that use it
-jest.mock("../../services/my-service.js", () => ({
-  MyService: jest.fn(() => ({
-    method: mockMethod,
-  })),
-}));
-
-// 4. Import the actual modules after mocking
-import { handler } from "../handler.js";
-import { MyService } from "../../services/my-service.js";
-
-describe("Handler", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it("should handle success case", async () => {
-    mockMethod.mockResolvedValueOnce({ id: "123" });
-    const result = await handler();
-    expect(result).toBeDefined();
-  });
-});
-```
-
-#### HTTP Mocks
-
-The project provides type-safe HTTP mocking utilities:
-
-```typescript
-// Mock successful responses
-mockFetchResponse(data, {
-  status: 201,
-  statusText: "Created",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Mock error responses
-mockFetchResponse(errorData, {
-  ok: false,
-  status: 400,
-  statusText: "Bad Request",
-});
-
-// Mock network errors
-mockFetchError("Network failure");
-```
-
 ### Test Utilities
 
 The project provides a comprehensive set of test utilities in `src/__tests__/test-utils.ts`:
@@ -230,5 +189,3 @@ MIT
 
 - [Multimodal MCP Client](https://github.com/Ejb503/multimodal-mcp-client) - Voice-powered MCP client
 - [systemprompt.io Documentation](https://systemprompt.io/docs)
-- [Model Context Protocol Specification](https://github.com/anthropics/anthropic-tools/tree/main/model-context-protocol)
-- [Claude Desktop](https://claude.ai/desktop)
