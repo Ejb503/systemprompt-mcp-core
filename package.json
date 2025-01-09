@@ -3,14 +3,11 @@
   "version": "1.0.2",
   "description": "A Model Context Protocol server",
   "type": "module",
-  "bin": {
-    "systemprompt-agent-server": "./build/cli.js"
-  },
   "files": [
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/cli.js', '755')\"",
+    "build": "tsc",
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
@@ -19,9 +16,11 @@
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0"
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
+    "@types/dotenv": "^8.2.0",
     "@types/jest": "^29.5.12",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^20.11.24",

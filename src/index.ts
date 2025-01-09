@@ -1,53 +1,71 @@
-import { Server } from "@modelcontextprotocol/sdk";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { initializeService } from "./services/systemprompt-service.js";
 import { serverConfig, serverCapabilities } from "./config/server-config.js";
 import {
   handleListResources,
   handleResourceCall,
+  initializeService as initializeResourceService,
 } from "./handlers/resource-handlers.js";
-import { handleListTools, handleToolCall } from "./handlers/tool-handlers.js";
+import {
+  handleListTools,
+  handleToolCall,
+  initializeService as initializeToolService,
+} from "./handlers/tool-handlers.js";
 import {
   handleListPrompts,
   handleGetPrompt,
+  initializeService as initializePromptService,
 } from "./handlers/prompt-handlers.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  ListToolsRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+  CallToolRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { config } from "dotenv";
 
-export async function startServer(apiKey: string): Promise<Server> {
+async function main() {
   try {
-    // Initialize services
-    initializeService(apiKey);
+    // Load environment variables first
+    config();
 
-    // Create and configure server
+    const apiKey = process.env.SYSTEMPROMPT_API_KEY;
+    if (!apiKey) {
+      throw new Error("SYSTEMPROMPT_API_KEY environment variable is required");
+    }
+
+    // Initialize services before creating server
+    initializePromptService(apiKey);
+    initializeResourceService(apiKey);
+    initializeToolService(apiKey);
+
+    // Create server instance directly
     const server = new Server(serverConfig, serverCapabilities);
 
-    // Register handlers
-    server.handle("resources/list", handleListResources);
-    server.handle("resources/call", handleResourceCall);
-    server.handle("tools/list", handleListTools);
-    server.handle("tools/call", handleToolCall);
-    server.handle("prompts/list", handleListPrompts);
-    server.handle("prompts/get", handleGetPrompt);
+    // Register all other handlers
+    server.setRequestHandler(ListResourcesRequestSchema, handleListResources);
+    server.setRequestHandler(ReadResourceRequestSchema, handleResourceCall);
+    server.setRequestHandler(ListToolsRequestSchema, handleListTools);
+    server.setRequestHandler(CallToolRequestSchema, handleToolCall);
+    server.setRequestHandler(ListPromptsRequestSchema, handleListPrompts);
+    server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
 
-    // Create and start transport
     const transport = new StdioServerTransport();
-    await transport.start(server);
 
-    return server;
+    // Connect to transport and keep running
+    await server.connect(transport);
+
+    // Log success but don't exit
+    console.log("Server connected and running");
   } catch (error) {
-    console.error("Fatal error:", error);
-    throw error;
-  }
-}
-
-// Run server if this is the main module
-if (import.meta.url === new URL(import.meta.url).href) {
-  const apiKey = process.argv[2];
-  if (!apiKey) {
-    console.error(
-      "API key is required. Usage: systemprompt-agent-server <API_KEY>"
-    );
+    console.error("Server error:", error);
     process.exit(1);
   }
-
-  startServer(apiKey).catch(() => process.exit(1));
 }
+
+main().catch((error) => {
+  console.error("Server error:", error);
+  process.exit(1);
+});

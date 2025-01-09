@@ -7,10 +7,9 @@ import type {
 import type { CreatePromptInput, EditPromptInput } from "../types/index.js";
 import { SystemPromptService } from "../services/systemprompt-service.js";
 
-let systemPromptService: SystemPromptService;
+const systemPromptService = SystemPromptService.getInstance();
 
 export function initializeService(apiKey: string) {
-  systemPromptService = new SystemPromptService();
   systemPromptService.initialize(apiKey);
 }
 

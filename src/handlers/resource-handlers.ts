@@ -7,10 +7,9 @@ import {
 import { SystemPromptService } from "../services/systemprompt-service.js";
 import type { BlockCreationResult } from "../types/index.js";
 
-let systemPromptService: SystemPromptService;
+const systemPromptService = SystemPromptService.getInstance();
 
 export function initializeService(apiKey: string) {
-  systemPromptService = new SystemPromptService();
   systemPromptService.initialize(apiKey);
 }
 
@@ -23,7 +22,7 @@ export async function handleListResources(
       resources: blocks.map((block: BlockCreationResult) => ({
         uri: `resource:///block/${block.id}`,
         name: block.metadata.title,
-        description: block.metadata.description,
+        description: block.metadata.description || "",
         mimeType: "text/plain",
       })),
     };
@@ -68,7 +67,7 @@ async function fetchResource(blockId: string): Promise<ReadResourceResult> {
           id: block.id,
           type: "block",
           name: block.metadata.title,
-          description: block.metadata.description,
+          description: block.metadata.description || "",
         },
       },
     ],

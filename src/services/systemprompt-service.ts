@@ -7,28 +7,24 @@ import {
   BlockCreationResult,
 } from "../types/index.js";
 
-let apiKey: string | null = null;
-
-export function initializeService(key: string) {
-  apiKey = key;
-}
-
-export function getApiKey() {
-  if (!apiKey) {
-    throw new Error("Service not initialized");
-  }
-  return apiKey;
-}
-
 export class SystemPromptService {
+  private static instance: SystemPromptService;
   private baseUrl: string;
+  private apiKey: string | null = null;
 
-  constructor() {
+  private constructor() {
     this.baseUrl = "https://api.systemprompt.io/v1";
   }
 
+  static getInstance(): SystemPromptService {
+    if (!SystemPromptService.instance) {
+      SystemPromptService.instance = new SystemPromptService();
+    }
+    return SystemPromptService.instance;
+  }
+
   initialize(key: string) {
-    apiKey = key;
+    this.apiKey = key;
   }
 
   private async request<T>(
@@ -36,24 +32,41 @@ export class SystemPromptService {
     method: string = "GET",
     data?: any
   ): Promise<T> {
-    if (!apiKey) {
-      throw new Error("Service not initialized");
+    if (!this.apiKey) {
+      throw new Error(
+        "Service not initialized. Call initialize() with API key first."
+      );
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method,
       headers: {
         "Content-Type": "application/json",
-        "api-key": apiKey,
+        "api-key": this.apiKey,
       },
       body: data ? JSON.stringify(data) : undefined,
     });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+      const text = await response.text();
+      console.error(`API Error Response: ${text}`);
+      throw new Error(`API request failed: ${response.statusText} - ${text}`);
     }
 
-    return response.json();
+    try {
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error(`Failed to parse JSON response: ${text}`);
+        throw new Error(
+          `Invalid JSON response from API: ${text.slice(0, 100)}...`
+        );
+      }
+    } catch (error) {
+      console.error("Error processing response:", error);
+      throw error;
+    }
   }
 
   async getAllPrompt(): Promise<PromptCreationResult[]> {
