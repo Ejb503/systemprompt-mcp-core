@@ -1,61 +1,68 @@
-import { SystemPromptResource } from "../types/index.js";
+import { PromptTemplate } from "../types/index.js";
+import { SystemPromptService } from "../services/systemprompt-service.js";
+import type { Block } from "../types/index.js";
 
-/**
- * Represents a collection of available MCP resources
- * Each resource is mapped by its identifier and contains its metadata
- */
-const RESOURCES: Record<string, SystemPromptResource> = {
-  "api-schema": {
-    uri: "resource:///api-schema",
-    contentUrl: "https://api.systemprompt.io/v1/schema",
-    type: "API Schema",
-    description: "OpenAPI schema documentation for the SystemPrompt API",
-  },
-  "prompt-docs": {
-    uri: "resource:///prompt-docs",
-    contentUrl: "https://systemprompt.io/resource/prompt",
-    type: "Prompt",
-    description: "Documentation for the SystemPrompt prompt system",
-  },
-};
+export interface Resource {
+  uri: string;
+  mimeType: string;
+  name: string;
+  description: string;
+}
 
-/**
- * Lists all available MCP resources with their metadata
- * @returns Promise resolving to an object containing the resources array
- */
-export async function handleListResources() {
-  return {
-    resources: Object.values(RESOURCES).map((resource) => ({
-      uri: resource.uri,
-      mimeType: "text/plain",
-      name: `${resource.type} Documentation`,
-      description: resource.description,
-    })),
+export interface ResourceCallRequest {
+  params: {
+    uri: string;
   };
 }
 
-/**
- * Reads the content of a specific MCP resource
- * @param request Object containing the resource URI to read
- * @returns Promise resolving to the resource contents
- * @throws Error if the requested resource is not found
- */
-export async function handleReadResource(request: { params: { uri: string } }) {
-  const url = new URL(request.params.uri);
-  const resourceId = url.pathname.replace(/^\//, "");
-  const resource = RESOURCES[resourceId];
+const systemPromptService = new SystemPromptService();
 
-  if (!resource) {
-    throw new Error(`Resource ${resourceId} not found`);
+export async function handleListResources() {
+  try {
+    const blocks = await systemPromptService.listBlocks();
+
+    return {
+      resources: blocks.map((block: Block) => ({
+        uri: `resource:///block/${block.id}`,
+        mimeType: "text/plain",
+        name: block.name,
+        description: block.description || `${block.type} block: ${block.name}`,
+      })),
+    };
+  } catch (error: any) {
+    throw new Error(
+      `Failed to fetch blocks: ${error.message || "Unknown error"}`
+    );
+  }
+}
+
+export async function handleResourceCall(request: ResourceCallRequest) {
+  const { uri } = request.params;
+  const match = uri.match(/^resource:\/\/\/block\/(.+)$/);
+
+  if (!match) {
+    throw new Error(
+      "Invalid resource URI format - expected resource:///block/{id}"
+    );
   }
 
-  return {
-    contents: [
-      {
-        uri: request.params.uri,
-        mimeType: "text/plain",
-        text: resource.contentUrl,
-      },
-    ],
-  };
+  const blockId = match[1];
+
+  try {
+    const block = await systemPromptService.getBlock(blockId);
+
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: "text/plain",
+          text: block.content,
+        },
+      ],
+    };
+  } catch (error: any) {
+    throw new Error(
+      `Failed to fetch block content: ${error.message || "Unknown error"}`
+    );
+  }
 }

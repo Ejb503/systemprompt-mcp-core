@@ -1,56 +1,88 @@
-import { CreatePromptInput, PromptCreationResult } from "../types/index.js";
+import {
+  CreatePromptInput,
+  EditPromptInput,
+  CreateBlockInput,
+  EditBlockInput,
+  PromptCreationResult,
+  BlockCreationResult,
+  Block,
+} from "../types/index.js";
 
 export class SystemPromptService {
-  private readonly apiBaseUrl: string;
+  private apiKey: string;
+  private baseUrl: string;
 
-  constructor(apiBaseUrl: string = "https://systemprompt.io/api") {
-    this.apiBaseUrl = apiBaseUrl;
+  constructor() {
+    this.apiKey = process.env.SYSTEMPROMPT_API_KEY || "";
+    this.baseUrl = "https://api.systemprompt.io/v1";
   }
 
-  async createPrompt(input: CreatePromptInput): Promise<PromptCreationResult> {
+  private async request<T>(
+    endpoint: string,
+    method: string,
+    data?: any
+  ): Promise<T> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/prompts`, {
-        method: "POST",
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method,
         headers: {
           "Content-Type": "application/json",
+          "api-key": this.apiKey,
         },
-        body: JSON.stringify(input),
+        body: data ? JSON.stringify(data) : undefined,
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to create prompt: ${response.statusText}`);
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        throw new Error("API request failed");
       }
 
-      const data = await response.json();
-      return {
-        promptId: data.id,
-        systemPrompt: data.systemPrompt,
-      };
-    } catch (error) {
-      throw new Error(
-        `Error creating prompt: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      if (!response.ok) {
+        throw new Error(responseData.message || "API request failed");
+      }
+
+      return responseData;
+    } catch (error: any) {
+      if (error.message) {
+        throw error;
+      }
+      throw new Error("API request failed");
     }
   }
 
-  async getPrompt(promptId: string): Promise<string> {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/prompts/${promptId}`);
+  async getAllPrompts(): Promise<PromptCreationResult[]> {
+    return this.request<PromptCreationResult[]>("/prompt", "GET");
+  }
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch prompt: ${response.statusText}`);
-      }
+  async createPrompt(data: CreatePromptInput): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>("/prompt", "POST", data);
+  }
 
-      const data = await response.json();
-      return data.systemPrompt;
-    } catch (error) {
-      throw new Error(
-        `Error fetching prompt: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
+  async editPrompt(
+    uuid: string,
+    data: Partial<CreatePromptInput>
+  ): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>(`/prompt/${uuid}`, "PUT", data);
+  }
+
+  async createBlock(data: CreateBlockInput): Promise<BlockCreationResult> {
+    return this.request<BlockCreationResult>("/block", "POST", data);
+  }
+
+  async editBlock(
+    uuid: string,
+    data: Partial<CreateBlockInput>
+  ): Promise<BlockCreationResult> {
+    return this.request<BlockCreationResult>(`/block/${uuid}`, "PUT", data);
+  }
+
+  async listBlocks(): Promise<Block[]> {
+    return this.request<Block[]>("/block", "GET");
+  }
+
+  async getBlock(blockId: string): Promise<Block> {
+    return this.request<Block>(`/block/${blockId}`, "GET");
   }
 }

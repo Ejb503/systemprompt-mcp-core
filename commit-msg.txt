@@ -1,0 +1,8 @@
+﻿feat!: add comprehensive test coverage and refactor handlers
+
+- Add extensive test coverage for all handlers (prompt, resource, tool)
+- Refactor SystemPromptService for better API integration
+- Improve type definitions and error handling
+- Update Jest configuration and testing setup
+
+BREAKING CHANGE: Version bump to 1.0.0 with major refactoring of handlers and service layer

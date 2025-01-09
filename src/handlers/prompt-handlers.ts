@@ -1,46 +1,85 @@
 import { SystemPromptService } from "../services/systemprompt-service.js";
+import { CreatePromptInput, PromptCreationResult } from "../types/index.js";
 
-const systemPromptService = new SystemPromptService();
+export async function handleListPrompts(
+  service: SystemPromptService = new SystemPromptService()
+) {
+  const prompts = await service.getAllPrompts();
 
-export async function handleListPrompts() {
   return {
-    prompts: [
-      {
-        name: "create_systemprompt_template",
-        description: "Create a template for a systemprompt compatible prompt",
+    prompts: prompts.map((prompt) => ({
+      name: prompt.metadata.title,
+      description: prompt.metadata.description,
+      messages: [
+        {
+          role: "system",
+          content: {
+            type: "text",
+            text: prompt.instruction.static,
+          },
+        },
+      ],
+      input_schema: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: prompt.input.description,
+          },
+        },
+        required: [],
       },
-    ],
+      output_schema: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: prompt.output.description,
+          },
+        },
+        required: [],
+      },
+    })),
   };
 }
 
-export async function handleGetPrompt(request: { params: { name: string } }) {
-  if (request.params.name !== "create_systemprompt_template") {
+export async function handleGetPrompt(
+  request: { params: { name: string } },
+  service: SystemPromptService = new SystemPromptService()
+) {
+  const { name } = request.params;
+
+  // Get the list of prompts
+  const { prompts } = await handleListPrompts(service);
+
+  // Find the requested prompt
+  const prompt = prompts.find((p) => p.name === name);
+  if (!prompt) {
     throw new Error("Unknown prompt");
   }
 
-  return {
-    messages: [
-      {
-        role: "system",
-        content: {
-          type: "text",
-          text: "You are a helpful assistant that creates systemprompt compatible prompts.",
-        },
-      },
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: "Please provide a title and description for the prompt you want to create. The prompt should be clear, concise, and follow systemprompt.io best practices.",
-        },
-      },
-      {
-        role: "assistant",
-        content: {
-          type: "text",
-          text: "I'll help you create a systemprompt compatible prompt. Please provide:\n1. A clear title that describes the prompt's purpose\n2. A detailed description of what the prompt should accomplish",
-        },
-      },
-    ],
-  };
+  return prompt;
+}
+
+export async function createPromptHandler(
+  service: SystemPromptService,
+  input: CreatePromptInput
+): Promise<PromptCreationResult> {
+  if (!input.instruction || !input.input || !input.output || !input.metadata) {
+    throw new Error("Invalid input");
+  }
+
+  return service.createPrompt(input);
+}
+
+export async function editPromptHandler(
+  service: SystemPromptService,
+  uuid: string,
+  input: Partial<CreatePromptInput>
+): Promise<PromptCreationResult> {
+  if (!uuid) {
+    throw new Error("Invalid UUID");
+  }
+
+  return service.editPrompt(uuid, input);
 }

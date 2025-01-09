@@ -1,68 +1,154 @@
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import type { Block } from "../../types/index.js";
+
+// Mock SystemPromptService
+const mockListBlocks = jest.fn<() => Promise<Block[]>>();
+const mockGetBlock = jest.fn<(blockId: string) => Promise<Block>>();
+
+jest.mock("../../services/systemprompt-service.js", () => ({
+  SystemPromptService: jest.fn(() => ({
+    listBlocks: mockListBlocks,
+    getBlock: mockGetBlock,
+  })),
+}));
+
 import {
   handleListResources,
-  handleReadResource,
+  handleResourceCall,
 } from "../resource-handlers.js";
+import { SystemPromptService } from "../../services/systemprompt-service.js";
 
 describe("Resource Handlers", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe("handleListResources", () => {
     it("should return list of available resources", async () => {
+      const mockBlocks: Block[] = [
+        {
+          id: "block1",
+          name: "Test Block 1",
+          type: "text",
+          description: "Test description 1",
+          content: "Test content 1",
+        },
+        {
+          id: "block2",
+          name: "Test Block 2",
+          type: "code",
+          description: "Test description 2",
+          content: "Test content 2",
+        },
+      ];
+
+      mockListBlocks.mockResolvedValueOnce(mockBlocks);
+
       const result = await handleListResources();
+
       expect(result).toHaveProperty("resources");
       expect(Array.isArray(result.resources)).toBe(true);
       expect(result.resources).toHaveLength(2);
 
-      // Check for expected resources
-      const resourceNames = result.resources.map((r) => r.name);
-      expect(resourceNames).toContain("API Schema Documentation");
-      expect(resourceNames).toContain("Prompt Documentation");
+      expect(result.resources).toEqual([
+        {
+          uri: "resource:///block/block1",
+          mimeType: "text/plain",
+          name: "Test Block 1",
+          description: "Test description 1",
+        },
+        {
+          uri: "resource:///block/block2",
+          mimeType: "text/plain",
+          name: "Test Block 2",
+          description: "Test description 2",
+        },
+      ]);
+    });
 
-      // Check resource structure
-      result.resources.forEach((resource) => {
-        expect(resource).toHaveProperty("uri");
-        expect(resource).toHaveProperty("mimeType", "text/plain");
-        expect(resource).toHaveProperty("name");
-        expect(resource).toHaveProperty("description");
-      });
+    it("should handle API errors", async () => {
+      mockListBlocks.mockRejectedValueOnce(new Error("API request failed"));
+
+      await expect(handleListResources()).rejects.toThrow(
+        "Failed to fetch blocks: API request failed"
+      );
+    });
+
+    it("should handle blocks without description", async () => {
+      const mockBlocks: Block[] = [
+        {
+          id: "block1",
+          name: "Test Block 1",
+          type: "text",
+          content: "Test content 1",
+        } as Block,
+      ];
+
+      mockListBlocks.mockResolvedValueOnce(mockBlocks);
+
+      const result = await handleListResources();
+
+      expect(result.resources[0].description).toBe("text block: Test Block 1");
     });
   });
 
-  describe("handleReadResource", () => {
-    it("should return API schema docs content", async () => {
-      const result = await handleReadResource({
-        params: { uri: "resource:///api-schema" },
+  describe("handleResourceCall", () => {
+    it("should return block content", async () => {
+      const mockBlock: Block = {
+        id: "block1",
+        content: "Test block content",
+        name: "Test Block",
+        type: "text",
+        description: "Test description",
+      };
+
+      mockGetBlock.mockResolvedValueOnce(mockBlock);
+
+      const result = await handleResourceCall({
+        params: { uri: "resource:///block/block1" },
       });
+
+      expect(mockGetBlock).toHaveBeenCalledWith("block1");
       expect(result).toEqual({
         contents: [
           {
-            uri: "resource:///api-schema",
+            uri: "resource:///block/block1",
             mimeType: "text/plain",
-            text: "https://api.systemprompt.io/v1/schema",
+            text: "Test block content",
           },
         ],
       });
     });
 
-    it("should return prompt docs content", async () => {
-      const result = await handleReadResource({
-        params: { uri: "resource:///prompt-docs" },
-      });
-      expect(result).toEqual({
-        contents: [
-          {
-            uri: "resource:///prompt-docs",
-            mimeType: "text/plain",
-            text: "https://systemprompt.io/resource/prompt",
-          },
-        ],
-      });
-    });
-
-    it("should throw error for unknown resource", async () => {
+    it("should throw error for invalid URI format", async () => {
       await expect(
-        handleReadResource({
-          params: { uri: "resource:///unknown" },
+        handleResourceCall({
+          params: { uri: "resource:///invalid" },
         })
-      ).rejects.toThrow("Resource unknown not found");
+      ).rejects.toThrow(
+        "Invalid resource URI format - expected resource:///block/{id}"
+      );
+    });
+
+    it("should handle API errors", async () => {
+      mockGetBlock.mockRejectedValueOnce(new Error("API request failed"));
+
+      await expect(
+        handleResourceCall({
+          params: { uri: "resource:///block/block1" },
+        })
+      ).rejects.toThrow("Failed to fetch block content: API request failed");
+    });
+
+    it("should handle errors with undefined message", async () => {
+      const errorWithoutMessage = new Error();
+      mockGetBlock.mockRejectedValueOnce(errorWithoutMessage);
+
+      await expect(
+        handleResourceCall({
+          params: { uri: "resource:///block/block1" },
+        })
+      ).rejects.toThrow("Failed to fetch block content: Unknown error");
     });
   });
 });

@@ -3,50 +3,48 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
-  CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  CallToolRequestSchema,
   ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-
-import { serverConfig, serverCapabilities } from "./config/server-config.js";
-import {
-  handleListResources,
-  handleReadResource,
-} from "./handlers/resource-handlers.js";
 import { handleListTools, handleToolCall } from "./handlers/tool-handlers.js";
 import {
-  handleListPrompts,
-  handleGetPrompt,
-} from "./handlers/prompt-handlers.js";
+  handleListResources,
+  handleResourceCall,
+} from "./handlers/resource-handlers.js";
 
-// Create server instance with our configuration
-const server = new Server(serverConfig, serverCapabilities);
+const server = new Server(
+  { name: "systemprompt-agent", version: "1.0.0" },
+  {
+    capabilities: {
+      resources: {},
+      tools: {},
+      prompts: {},
+    },
+  }
+);
 
 // Set up resource handlers
 server.setRequestHandler(ListResourcesRequestSchema, handleListResources);
-server.setRequestHandler(ReadResourceRequestSchema, handleReadResource);
+server.setRequestHandler(ReadResourceRequestSchema, handleResourceCall);
 
 // Set up tool handlers
 server.setRequestHandler(ListToolsRequestSchema, handleListTools);
 server.setRequestHandler(CallToolRequestSchema, handleToolCall);
 
-// Set up prompt handlers
-server.setRequestHandler(ListPromptsRequestSchema, handleListPrompts);
-server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
-
-/**
- * Start the server using stdio transport.
- * This allows the server to communicate via standard input/output streams.
- */
-export async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
-
-main().catch((error) => {
-  console.error("Server error:", error);
+const transport = new StdioServerTransport();
+server.connect(transport).catch((error: Error) => {
+  console.error("Failed to start server:", error);
   process.exit(1);
 });
+
+export {
+  // Tool handlers
+  handleListTools,
+  handleToolCall,
+
+  // Resource handlers
+  handleListResources,
+  handleResourceCall,
+};
