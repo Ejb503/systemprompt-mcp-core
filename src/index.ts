@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { serverConfig, serverCapabilities } from "./config/server-config.js";
 import {
@@ -57,15 +59,16 @@ async function main() {
     // Connect to transport and keep running
     await server.connect(transport);
 
-    // Log success but don't exit
-    console.log("Server connected and running");
+    // Keep the process alive without logging
+    process.stdin.resume();
   } catch (error) {
     console.error("Server error:", error);
     process.exit(1);
   }
 }
 
+// Run the server
 main().catch((error) => {
-  console.error("Server error:", error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });

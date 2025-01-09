@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2025-01-09
+
+### Added
+
+- Added CLI support through npx with proper binary configuration
+- Added shebang line for direct script execution
+
+### Changed
+
+- Improved server process handling with proper stdin management
+- Removed unnecessary console logging for better stdio transport compatibility
+
 ## [1.0.3] - 2025-01-09
 
 ### Changed
