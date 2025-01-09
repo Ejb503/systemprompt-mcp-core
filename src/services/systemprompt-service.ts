@@ -56,47 +56,56 @@ export class SystemPromptService {
     return response.json();
   }
 
-  async getAllPrompt() {
-    return this.request<any[]>("/prompt");
+  async getAllPrompt(): Promise<PromptCreationResult[]> {
+    return this.request<PromptCreationResult[]>("/prompt");
   }
 
-  async getPrompt(id: string) {
-    return this.request<any>(`/prompt/${id}`);
+  async getPrompt(id: string): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>(`/prompt/${id}`);
   }
 
-  async listblock() {
-    return this.request<any[]>("/block");
+  async listblock(): Promise<BlockCreationResult[]> {
+    return this.request<BlockCreationResult[]>("/block");
   }
 
-  async getBlock(id: string) {
-    return this.request<any>(`/block/${id}`);
+  async getBlock(id: string): Promise<BlockCreationResult> {
+    return this.request<BlockCreationResult>(`/block/${id}`);
   }
 
-  async createBlock(data: any) {
-    return this.request<any>("/block", "POST", data);
+  async createBlock(data: CreateBlockInput): Promise<BlockCreationResult> {
+    return this.request<BlockCreationResult>("/block", "POST", data);
   }
 
-  async updateBlock(id: string, data: any) {
-    return this.request<any>(`/block/${id}`, "PUT", data);
+  async updateBlock(
+    id: string,
+    data: EditBlockInput
+  ): Promise<BlockCreationResult> {
+    return this.request<BlockCreationResult>(`/block/${id}`, "PUT", data);
   }
 
-  async deleteBlock(id: string) {
+  async deleteBlock(id: string): Promise<void> {
     return this.request<void>(`/block/${id}`, "DELETE");
   }
 
-  async createPrompt(data: any) {
-    return this.request<any>("/prompt", "POST", data);
+  async createPrompt(data: CreatePromptInput): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>("/prompt", "POST", data);
   }
 
-  async updatePrompt(id: string, data: any) {
-    return this.request<any>(`/prompt/${id}`, "PUT", data);
+  async updatePrompt(
+    id: string,
+    data: EditPromptInput
+  ): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>(`/prompt/${id}`, "PUT", data);
   }
 
-  async editPrompt(id: string, data: any) {
-    return this.request<any>(`/prompt/${id}`, "PUT", data);
+  async editPrompt(
+    id: string,
+    data: EditPromptInput
+  ): Promise<PromptCreationResult> {
+    return this.request<PromptCreationResult>(`/prompt/${id}`, "PUT", data);
   }
 
-  async deletePrompt(id: string) {
+  async deletePrompt(id: string): Promise<void> {
     return this.request<void>(`/prompt/${id}`, "DELETE");
   }
 }

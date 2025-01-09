@@ -81,13 +81,9 @@ describe("Resource Handlers", () => {
       expect(result.resources).toEqual(
         mockBlocks.map((block) => ({
           uri: `resource:///block/${block.id}`,
-          mimeType: "text/plain",
           name: block.metadata.title,
           description: block.metadata.description,
-          metadata: {
-            id: block.id,
-            type: "block",
-          },
+          mimeType: "text/plain",
         }))
       );
     });

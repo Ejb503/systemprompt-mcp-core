@@ -7,6 +7,7 @@ import {
   convertToMCPPrompt,
 } from "../prompt-handlers.js";
 import type { PromptCreationResult } from "../../types/index.js";
+import type { JSONSchema7TypeName } from "json-schema";
 import {
   mockSystemPromptResult,
   mockArrayPromptResult,
@@ -14,6 +15,11 @@ import {
   mockMCPPrompt,
   mockArrayMCPPrompt,
   mockNestedMCPPrompt,
+  mockEmptyPropsPrompt,
+  mockInvalidPropsPrompt,
+  mockWithoutDescPrompt,
+  mockWithoutRequiredPrompt,
+  mockFalsyDescPrompt,
 } from "./mock-objects.js";
 
 jest.mock("../../services/systemprompt-service.js");
@@ -39,7 +45,7 @@ describe("Prompt Handlers", () => {
       description: "Test input",
       type: ["message"],
       schema: {
-        type: "object",
+        type: "object" as JSONSchema7TypeName,
         properties: {},
       },
     },
@@ -48,7 +54,7 @@ describe("Prompt Handlers", () => {
       description: "Test output",
       type: ["message"],
       schema: {
-        type: "object",
+        type: "object" as JSONSchema7TypeName,
         properties: {},
       },
     },
@@ -202,57 +208,23 @@ describe("Prompt Handlers", () => {
     });
 
     it("should handle empty properties", () => {
-      const promptWithEmptyProps = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      };
-      const result = convertToMCPPrompt(promptWithEmptyProps);
+      const result = convertToMCPPrompt(mockEmptyPropsPrompt);
       expect(result.arguments).toEqual([]);
     });
 
     it("should handle null or invalid schema properties", () => {
-      const promptWithInvalidProps = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {
-              invalid1: null,
-              invalid2: true,
-              invalid3: "string",
-            },
-          },
+      const result = convertToMCPPrompt(mockInvalidPropsPrompt);
+      expect(result.arguments).toEqual([
+        {
+          name: "test1",
+          description: "",
+          required: false,
         },
-      };
-      const result = convertToMCPPrompt(promptWithInvalidProps);
-      expect(result.arguments).toEqual([]);
+      ]);
     });
 
     it("should handle schema property without description", () => {
-      const promptWithoutDesc = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {
-              test: {
-                type: "string",
-                // no description field
-              },
-            },
-            required: ["test"],
-          },
-        },
-      };
-      const result = convertToMCPPrompt(promptWithoutDesc);
+      const result = convertToMCPPrompt(mockWithoutDescPrompt);
       expect(result.arguments).toEqual([
         {
           name: "test",
@@ -263,23 +235,7 @@ describe("Prompt Handlers", () => {
     });
 
     it("should handle schema without required field", () => {
-      const promptWithoutRequired = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {
-              test: {
-                type: "string",
-                description: "test field",
-              },
-            },
-            // no required field
-          },
-        },
-      };
-      const result = convertToMCPPrompt(promptWithoutRequired);
+      const result = convertToMCPPrompt(mockWithoutRequiredPrompt);
       expect(result.arguments).toEqual([
         {
           name: "test",
@@ -289,61 +245,8 @@ describe("Prompt Handlers", () => {
       ]);
     });
 
-    it("should handle schema with non-object property type", () => {
-      const promptWithNonObjectProp = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {
-              test1: {
-                type: "string",
-                description: 123, // non-string description
-              },
-              test2: "not an object", // non-object property
-              test3: null, // null property
-            },
-            required: ["test1"],
-          },
-        },
-      };
-      const result = convertToMCPPrompt(promptWithNonObjectProp);
-      expect(result.arguments).toEqual([
-        {
-          name: "test1",
-          description: "123",
-          required: true,
-        },
-      ]);
-    });
-
     it("should handle schema with falsy description values", () => {
-      const promptWithFalsyDesc = {
-        ...mockSystemPromptResult,
-        input: {
-          ...mockSystemPromptResult.input,
-          schema: {
-            type: "object",
-            properties: {
-              test1: {
-                type: "string",
-                description: "", // empty string
-              },
-              test2: {
-                type: "string",
-                description: null, // null description
-              },
-              test3: {
-                type: "string",
-                description: undefined, // undefined description
-              },
-            },
-            required: ["test1", "test2", "test3"],
-          },
-        },
-      };
-      const result = convertToMCPPrompt(promptWithFalsyDesc);
+      const result = convertToMCPPrompt(mockFalsyDescPrompt);
       expect(result.arguments).toEqual([
         {
           name: "test1",

@@ -27,11 +27,7 @@ const config = {
 
   // Test setup and patterns
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-  testMatch: [
-    "**/__tests__/**/*.test.ts",
-    "**/__test__/**/*.test.ts",
-    "**/*.test.ts",
-  ],
+  testMatch: ["**/__tests__/**/*.test.ts", "**/*.test.ts"],
 
   // Coverage configuration
   coveragePathIgnorePatterns: [

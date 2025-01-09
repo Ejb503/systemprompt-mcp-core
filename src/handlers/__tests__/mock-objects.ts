@@ -1,5 +1,6 @@
 import type { PromptCreationResult } from "../../types/index.js";
 import type { Prompt } from "@modelcontextprotocol/sdk/types.js";
+import type { JSONSchema7TypeName } from "json-schema";
 
 // Basic mock with simple string input
 export const mockSystemPromptResult: PromptCreationResult = {
@@ -12,10 +13,10 @@ export const mockSystemPromptResult: PromptCreationResult = {
     description: "The user's documentation request",
     type: ["message"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         message: {
-          type: "string",
+          type: "string" as JSONSchema7TypeName,
           description: "The user's documentation request",
         },
       },
@@ -27,10 +28,10 @@ export const mockSystemPromptResult: PromptCreationResult = {
     description: "The assistant's response",
     type: ["message"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         response: {
-          type: "string",
+          type: "string" as JSONSchema7TypeName,
           description: "The assistant's response",
         },
       },
@@ -62,19 +63,19 @@ export const mockArrayPromptResult: PromptCreationResult = {
     description: "The user's todo list items",
     type: ["structured_data"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         items: {
-          type: "array",
+          type: "array" as JSONSchema7TypeName,
           description: "List of todo items",
           items: {
-            type: "string",
+            type: "string" as JSONSchema7TypeName,
             description: "A todo item",
           },
           minItems: 1,
         },
         priority: {
-          type: "string",
+          type: "string" as JSONSchema7TypeName,
           enum: ["high", "medium", "low"],
           description: "Priority level for the items",
         },
@@ -87,12 +88,12 @@ export const mockArrayPromptResult: PromptCreationResult = {
     description: "The organized todo list",
     type: ["structured_data"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         organized_items: {
-          type: "array",
+          type: "array" as JSONSchema7TypeName,
           items: {
-            type: "string",
+            type: "string" as JSONSchema7TypeName,
           },
         },
       },
@@ -124,36 +125,36 @@ export const mockNestedPromptResult: PromptCreationResult = {
     description: "The contact information",
     type: ["structured_data"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         person: {
-          type: "object",
+          type: "object" as JSONSchema7TypeName,
           description: "Person's information",
           properties: {
             name: {
-              type: "object",
+              type: "object" as JSONSchema7TypeName,
               properties: {
                 first: {
-                  type: "string",
+                  type: "string" as JSONSchema7TypeName,
                   description: "First name",
                 },
                 last: {
-                  type: "string",
+                  type: "string" as JSONSchema7TypeName,
                   description: "Last name",
                 },
               },
               required: ["first", "last"],
             },
             contact: {
-              type: "object",
+              type: "object" as JSONSchema7TypeName,
               properties: {
                 email: {
-                  type: "string",
+                  type: "string" as JSONSchema7TypeName,
                   description: "Email address",
                   format: "email",
                 },
                 phone: {
-                  type: "string",
+                  type: "string" as JSONSchema7TypeName,
                   description: "Phone number",
                   pattern: "^\\+?[1-9]\\d{1,14}$",
                 },
@@ -164,10 +165,10 @@ export const mockNestedPromptResult: PromptCreationResult = {
           required: ["name"],
         },
         tags: {
-          type: "array",
+          type: "array" as JSONSchema7TypeName,
           description: "Contact tags",
           items: {
-            type: "string",
+            type: "string" as JSONSchema7TypeName,
           },
         },
       },
@@ -179,10 +180,10 @@ export const mockNestedPromptResult: PromptCreationResult = {
     description: "The formatted contact information",
     type: ["structured_data"],
     schema: {
-      type: "object",
+      type: "object" as JSONSchema7TypeName,
       properties: {
         formatted: {
-          type: "string",
+          type: "string" as JSONSchema7TypeName,
         },
       },
       required: ["formatted"],
@@ -199,6 +200,90 @@ export const mockNestedPromptResult: PromptCreationResult = {
     log_message: "Initial creation",
   },
   _link: "https://systemprompt.io/prompts/125",
+};
+
+// Test mocks for edge cases
+export const mockEmptyPropsPrompt = {
+  ...mockSystemPromptResult,
+  input: {
+    ...mockSystemPromptResult.input,
+    schema: {
+      type: "object" as JSONSchema7TypeName,
+      properties: {},
+    },
+  },
+};
+
+export const mockInvalidPropsPrompt = {
+  ...mockSystemPromptResult,
+  input: {
+    ...mockSystemPromptResult.input,
+    schema: {
+      type: "object" as JSONSchema7TypeName,
+      properties: {
+        test1: {
+          type: "string" as JSONSchema7TypeName,
+        },
+      },
+    },
+  },
+};
+
+export const mockWithoutDescPrompt = {
+  ...mockSystemPromptResult,
+  input: {
+    ...mockSystemPromptResult.input,
+    schema: {
+      type: "object" as JSONSchema7TypeName,
+      properties: {
+        test: {
+          type: "string" as JSONSchema7TypeName,
+        },
+      },
+      required: ["test"],
+    },
+  },
+};
+
+export const mockWithoutRequiredPrompt = {
+  ...mockSystemPromptResult,
+  input: {
+    ...mockSystemPromptResult.input,
+    schema: {
+      type: "object" as JSONSchema7TypeName,
+      properties: {
+        test: {
+          type: "string" as JSONSchema7TypeName,
+          description: "test field",
+        },
+      },
+    },
+  },
+};
+
+export const mockFalsyDescPrompt = {
+  ...mockSystemPromptResult,
+  input: {
+    ...mockSystemPromptResult.input,
+    schema: {
+      type: "object" as JSONSchema7TypeName,
+      properties: {
+        test1: {
+          type: "string" as JSONSchema7TypeName,
+          description: "",
+        },
+        test2: {
+          type: "string" as JSONSchema7TypeName,
+          description: "",
+        },
+        test3: {
+          type: "string" as JSONSchema7TypeName,
+          description: "",
+        },
+      },
+      required: ["test1", "test2", "test3"],
+    },
+  },
 };
 
 // Expected MCP format for basic mock

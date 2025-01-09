@@ -191,7 +191,7 @@ mockFetchError("Network failure");
 
 ### Test Utilities
 
-The project provides a comprehensive set of test utilities in `src/__test__/test-utils.ts`:
+The project provides a comprehensive set of test utilities in `src/__tests__/test-utils.ts`:
 
 ```typescript
 // Create test fixtures

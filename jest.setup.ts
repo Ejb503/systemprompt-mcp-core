@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 import {
   createMockResponse,
   MockResponseOptions,
-} from "./src/__test__/test-utils";
+} from "./src/__tests__/test-utils";
 
 // Define global types for our custom matchers and utilities
 declare global {

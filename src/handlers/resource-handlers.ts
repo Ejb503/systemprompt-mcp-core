@@ -5,7 +5,7 @@ import {
   ReadResourceRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { SystemPromptService } from "../services/systemprompt-service.js";
-import type { Block } from "../types/index.js";
+import type { BlockCreationResult } from "../types/index.js";
 
 let systemPromptService: SystemPromptService;
 
@@ -20,7 +20,12 @@ export async function handleListResources(
   try {
     const blocks = await systemPromptService.listblock();
     return {
-      resources: blocks.map((block: Block) => convertToMCPResource(block)),
+      resources: blocks.map((block: BlockCreationResult) => ({
+        uri: `resource:///block/${block.id}`,
+        name: block.metadata.title,
+        description: block.metadata.description,
+        mimeType: "text/plain",
+      })),
     };
   } catch (error) {
     throw new Error(`Failed to list resources: ${error}`);
@@ -41,25 +46,8 @@ export async function handleResourceCall(
     }
 
     const blockId = match[1];
-    const block = await systemPromptService.getBlock(blockId);
-
-    return {
-      contents: [
-        {
-          uri,
-          mimeType: "text/plain",
-          text: block.content,
-          metadata: {
-            id: block.id,
-            type: "block",
-            name: block.metadata.title,
-            description: block.metadata.description,
-          },
-        },
-      ],
-    };
+    return await fetchResource(blockId);
   } catch (error: any) {
-    console.error("Failed to fetch block:", error);
     throw new Error(
       `Failed to fetch block from systemprompt.io: ${
         error.message || "Unknown error"
@@ -68,15 +56,21 @@ export async function handleResourceCall(
   }
 }
 
-function convertToMCPResource(block: Block) {
+async function fetchResource(blockId: string): Promise<ReadResourceResult> {
+  const block = await systemPromptService.getBlock(blockId);
   return {
-    uri: `resource:///block/${block.id}`,
-    mimeType: "text/plain",
-    name: block.metadata.title,
-    description: block.metadata.description,
-    metadata: {
-      id: block.id,
-      type: "block",
-    },
+    contents: [
+      {
+        uri: `resource:///block/${blockId}`,
+        mimeType: "text/plain",
+        text: block.content,
+        metadata: {
+          id: block.id,
+          type: "block",
+          name: block.metadata.title,
+          description: block.metadata.description,
+        },
+      },
+    ],
   };
 }

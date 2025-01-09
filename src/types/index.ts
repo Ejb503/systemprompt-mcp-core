@@ -53,19 +53,13 @@ export interface CreatePromptInput {
     name: string;
     description: string;
     type: string[];
-    schema: {
-      type: string;
-      properties: Record<string, any>;
-    };
+    schema: JSONSchema7;
   };
   output: {
     name: string;
     description: string;
     type: string[];
-    schema: {
-      type: string;
-      properties: Record<string, any>;
-    };
+    schema: JSONSchema7;
   };
 }
 
