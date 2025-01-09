@@ -1,6 +1,6 @@
 {
   "name": "systemprompt-agent-server",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A Model Context Protocol server",
   "type": "module",
   "bin": {
