@@ -30,5 +30,26 @@
     "ts-jest-resolver": "^2.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ejb503/systemprompt-mcp-core"
+  },
+  "keywords": [
+    "systemprompt",
+    "mcp",
+    "model-context-protocol",
+    "llm",
+    "ai",
+    "agent"
+  ],
+  "author": "SystemPrompt",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Ejb503/systemprompt-mcp-core/issues"
+  },
+  "homepage": "https://systemprompt.io",
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
