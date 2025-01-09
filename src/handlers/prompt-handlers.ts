@@ -8,9 +8,10 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { PromptCreationResult } from "../types/index.js";
 
-const systemPromptService = SystemPromptService.getInstance();
+let systemPromptService: SystemPromptService;
 
 export function initializeService(apiKey: string) {
+  systemPromptService = SystemPromptService.getInstance();
   systemPromptService.initialize(apiKey);
 }
 

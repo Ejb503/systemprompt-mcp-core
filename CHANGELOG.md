@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2025-01-09
+
+### Changed
+
+- Refactored SystemPromptService to use singleton pattern consistently
+- Improved test implementations with better mocking and error handling
+- Enhanced type definitions and schema validation in handlers
+
 ## [1.0.2] - 2025-01-09
 
 ### Fixed

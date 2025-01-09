@@ -1,3 +1,4 @@
+import { SystemPromptService } from "../services/systemprompt-service.js";
 import type {
   ListToolsRequest,
   ListToolsResult,
@@ -5,11 +6,11 @@ import type {
   CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { CreatePromptInput, EditPromptInput } from "../types/index.js";
-import { SystemPromptService } from "../services/systemprompt-service.js";
 
-const systemPromptService = SystemPromptService.getInstance();
+let systemPromptService: SystemPromptService;
 
 export function initializeService(apiKey: string) {
+  systemPromptService = SystemPromptService.getInstance();
   systemPromptService.initialize(apiKey);
 }
 
@@ -24,20 +25,63 @@ export async function handleListTools(
         inputSchema: {
           type: "object",
           properties: {
-            title: {
-              type: "string",
-              description: "Title of the prompt",
-            },
-            description: {
-              type: "string",
-              description: "Description of the prompt",
+            metadata: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+              },
+              required: ["title", "description"],
             },
             instruction: {
-              type: "string",
-              description: "The static instruction for the prompt",
+              type: "object",
+              properties: {
+                static: { type: "string" },
+              },
+              required: ["static"],
+            },
+            input: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                type: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    properties: { type: "object" },
+                  },
+                  required: ["type", "properties"],
+                },
+              },
+              required: ["name", "description", "type", "schema"],
+            },
+            output: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                type: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    properties: { type: "object" },
+                  },
+                  required: ["type", "properties"],
+                },
+              },
+              required: ["name", "description", "type", "schema"],
             },
           },
-          required: ["title", "description", "instruction"],
+          required: ["metadata", "instruction", "input", "output"],
         },
       },
       {
@@ -46,21 +90,55 @@ export async function handleListTools(
         inputSchema: {
           type: "object",
           properties: {
-            uuid: {
-              type: "string",
-              description: "UUID of the prompt to edit",
-            },
-            title: {
-              type: "string",
-              description: "New title of the prompt",
-            },
-            description: {
-              type: "string",
-              description: "New description of the prompt",
+            uuid: { type: "string" },
+            metadata: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+              },
             },
             instruction: {
-              type: "string",
-              description: "New static instruction for the prompt",
+              type: "object",
+              properties: {
+                static: { type: "string" },
+              },
+            },
+            input: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                type: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    properties: { type: "object" },
+                  },
+                },
+              },
+            },
+            output: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                type: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    properties: { type: "object" },
+                  },
+                },
+              },
             },
           },
           required: ["uuid"],

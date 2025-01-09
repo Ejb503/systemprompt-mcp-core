@@ -28,12 +28,9 @@ describe("Resource Handlers", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (
-      SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-    ).mockImplementation(
-      () =>
-        mockSystemPromptService as unknown as jest.Mocked<SystemPromptService>
-    );
+    jest
+      .spyOn(SystemPromptService, "getInstance")
+      .mockReturnValue(mockSystemPromptService);
     initializeService("test-api-key");
   });
 

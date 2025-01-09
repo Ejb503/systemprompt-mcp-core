@@ -81,11 +81,7 @@ describe("Prompt Handlers", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (
-      SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-    ).mockImplementation(
-      () => mockService as unknown as jest.Mocked<SystemPromptService>
-    );
+    jest.spyOn(SystemPromptService, "getInstance").mockReturnValue(mockService);
     initializeService("test-api-key");
   });
 

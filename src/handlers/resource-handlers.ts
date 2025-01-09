@@ -1,15 +1,15 @@
-import {
+import { SystemPromptService } from "../services/systemprompt-service.js";
+import type {
   ListResourcesRequest,
   ListResourcesResult,
-  ReadResourceResult,
   ReadResourceRequest,
+  ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { SystemPromptService } from "../services/systemprompt-service.js";
-import type { BlockCreationResult } from "../types/index.js";
 
-const systemPromptService = SystemPromptService.getInstance();
+let systemPromptService: SystemPromptService;
 
 export function initializeService(apiKey: string) {
+  systemPromptService = SystemPromptService.getInstance();
   systemPromptService.initialize(apiKey);
 }
 
@@ -19,14 +19,14 @@ export async function handleListResources(
   try {
     const blocks = await systemPromptService.listblock();
     return {
-      resources: blocks.map((block: BlockCreationResult) => ({
+      resources: blocks.map((block) => ({
         uri: `resource:///block/${block.id}`,
         name: block.metadata.title,
-        description: block.metadata.description || "",
+        description: block.metadata.description,
         mimeType: "text/plain",
       })),
     };
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to list resources: ${error}`);
   }
 }
