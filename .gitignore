@@ -2,3 +2,10 @@ node_modules/
 build/
 *.log
 .env*
+
+agent
+agent/*
+
+coverage/
+output/
+scripts/
