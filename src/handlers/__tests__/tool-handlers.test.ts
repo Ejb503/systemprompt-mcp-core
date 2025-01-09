@@ -56,12 +56,12 @@ describe("Tool Handlers", () => {
     request: jest.fn(),
     getAllPrompts: jest.fn<() => Promise<SystempromptPromptResponse[]>>(),
     createPrompt: jest
-      .fn()
-      .mockImplementation(
-        async (data: Partial<SystempromptPromptAPIRequest>) => {
-          return mockResponse;
-        }
-      ),
+      .fn<
+        (
+          data: SystempromptPromptAPIRequest
+        ) => Promise<SystempromptPromptResponse>
+      >()
+      .mockImplementation(async (data) => mockResponse),
     editPrompt:
       jest.fn<
         (

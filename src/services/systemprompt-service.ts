@@ -19,9 +19,7 @@ export class SystemPromptService {
   }
 
   public static initialize(apiKey: string): void {
-    if (!SystemPromptService.instance) {
-      SystemPromptService.instance = new SystemPromptService(apiKey);
-    }
+    SystemPromptService.instance = new SystemPromptService(apiKey);
   }
 
   public static getInstance(): SystemPromptService {
@@ -31,6 +29,10 @@ export class SystemPromptService {
       );
     }
     return SystemPromptService.instance;
+  }
+
+  public static cleanup(): void {
+    SystemPromptService.instance = null;
   }
 
   private async request<T>(
