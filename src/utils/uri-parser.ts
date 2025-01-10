@@ -1,3 +1,5 @@
+import { ApplicationError } from './error-handling.js';
+
 /**
  * Represents a parsed resource URI
  */
@@ -9,10 +11,9 @@ export interface ParsedResourceUri {
 /**
  * Error thrown when URI parsing fails
  */
-export class ResourceUriError extends Error {
+export class ResourceUriError extends ApplicationError {
   constructor(message: string) {
-    super(message);
-    this.name = 'ResourceUriError';
+    super(message, 'ResourceUriError');
   }
 }
 

@@ -1,4 +1,18 @@
 /**
+ * Base class for all custom application errors
+ */
+export class ApplicationError extends Error {
+  constructor(message: string, name: string = 'ApplicationError') {
+    super(message);
+    this.name = name;
+    // Maintains proper stack trace for where error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
+
+/**
  * Handles errors from service operations by wrapping them in a standardized format
  * @param error The caught error
  * @param context Description of what operation failed
@@ -6,7 +20,7 @@
  */
 export const handleServiceError = (error: unknown, context: string): never => {
   const message = error instanceof Error ? error.message : "Unknown error";
-  throw new Error(`Failed to ${context}: ${message}`);
+  throw new ApplicationError(`Failed to ${context}: ${message}`, 'ServiceError');
 };
 
 /**
@@ -16,5 +30,5 @@ export const handleServiceError = (error: unknown, context: string): never => {
  * @throws Error with the API error message or default message
  */
 export const handleApiError = (response: { message?: string }, defaultMessage: string = "API request failed"): never => {
-  throw new Error(response.message || defaultMessage);
+  throw new ApplicationError(response.message || defaultMessage, 'ApiError');
 }; 
