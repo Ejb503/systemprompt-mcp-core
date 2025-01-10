@@ -1,4 +1,4 @@
-import { ApplicationError } from './error-handling.js';
+import { ApplicationError, ErrorCode } from './error-handling.js';
 
 /**
  * Represents a parsed resource URI with its components.
@@ -40,12 +40,15 @@ const RESOURCE_ID_REGEX = /^[a-zA-Z0-9\-]{1,128}$/;
  * 
  * @example
  * ```ts
- * throw new ResourceUriError('Invalid resource ID format');
+ * throw new ResourceUriError('Invalid resource ID format', 'INVALID_RESOURCE_ID');
  * ```
  */
 export class ResourceUriError extends ApplicationError {
-  constructor(message: string) {
-    super(message, 'ResourceUriError');
+  constructor(
+    message: string,
+    code: Extract<ErrorCode, 'INVALID_RESOURCE_TYPE' | 'INVALID_RESOURCE_ID'> = 'INVALID_RESOURCE_ID'
+  ) {
+    super(message, code, 'ResourceUriError');
   }
 }
 
@@ -101,7 +104,8 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
 
   if (!match || match.length < 3) {
     throw new ResourceUriError(
-      'Invalid resource URI format - expected "resource:///{type}/{id}" where type contains only alphanumeric characters and underscores, and id contains only alphanumeric characters and hyphens'
+      'Invalid resource URI format - expected "resource:///{type}/{id}" where type contains only alphanumeric characters and underscores, and id contains only alphanumeric characters and hyphens',
+      'INVALID_RESOURCE_ID'
     );
   }
 
@@ -112,11 +116,17 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
   const [, type, id] = match;
 
   if (!isValidResourceType(type)) {
-    throw new ResourceUriError(`Unsupported resource type: ${type}`);
+    throw new ResourceUriError(
+      `Unsupported resource type: ${type}`,
+      'INVALID_RESOURCE_TYPE'
+    );
   }
 
   if (!id || !RESOURCE_ID_REGEX.test(id)) {
-    throw new ResourceUriError('Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters');
+    throw new ResourceUriError(
+      'Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters',
+      'INVALID_RESOURCE_ID'
+    );
   }
 
   return { type, id };
@@ -147,11 +157,17 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
  */
 export function createResourceUri(type: string, id: string): string {
   if (!isValidResourceType(type)) {
-    throw new ResourceUriError(`Unsupported resource type: ${type}`);
+    throw new ResourceUriError(
+      `Unsupported resource type: ${type}`,
+      'INVALID_RESOURCE_TYPE'
+    );
   }
 
   if (!id || !RESOURCE_ID_REGEX.test(id)) {
-    throw new ResourceUriError('Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters');
+    throw new ResourceUriError(
+      'Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters',
+      'INVALID_RESOURCE_ID'
+    );
   }
 
   return `resource:///${type}/${id}`;
