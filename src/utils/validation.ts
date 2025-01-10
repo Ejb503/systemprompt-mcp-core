@@ -21,7 +21,7 @@ export class ValidationError extends ApplicationError {
  * This is useful for validating request bodies and parameters.
  * 
  * @param value - The value to check
- * @returns True if the value is a non-null object, false otherwise
+ * @returns True if the value is a non-null object and not an array, false otherwise
  * 
  * @example
  * ```ts
@@ -32,7 +32,7 @@ export class ValidationError extends ApplicationError {
  * ```
  */
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
@@ -53,6 +53,50 @@ function isObject(value: unknown): value is Record<string, unknown> {
  */
 function hasProperty<K extends string>(obj: object, prop: K): obj is { [P in K]: unknown } {
   return prop in obj;
+}
+
+/**
+ * Validates that a value is an object.
+ * 
+ * @param value - The value to validate
+ * @param objectName - The name of the object being validated (used in error messages)
+ * @throws {ValidationError} If the value is not an object
+ * 
+ * @example
+ * ```ts
+ * validateObject(request, 'Request');
+ * // request is now typed as Record<string, unknown>
+ * ```
+ */
+function validateObject(value: unknown, objectName: string): asserts value is Record<string, unknown> {
+  if (!isObject(value)) {
+    throw new ValidationError(`${objectName} must be an object`);
+  }
+}
+
+/**
+ * Validates that an object has the specified property.
+ * Assumes the input has already been validated as an object.
+ * 
+ * @param obj - The object to validate
+ * @param prop - The required property name
+ * @param objectName - The name of the object being validated (used in error messages)
+ * @throws {ValidationError} If the object lacks the required property
+ * 
+ * @example
+ * ```ts
+ * validateObjectProperty(request, 'params', 'Request');
+ * // request.params is now typed as unknown
+ * ```
+ */
+function validateObjectProperty<K extends string>(
+  obj: Record<string, unknown>,
+  prop: K,
+  objectName: string
+): asserts obj is Record<string, unknown> & { [P in K]: unknown } {
+  if (!hasProperty(obj, prop)) {
+    throw new ValidationError(`${objectName} must contain ${prop}`);
+  }
 }
 
 /**
@@ -80,35 +124,6 @@ function validateNonEmptyString(value: unknown, fieldName: string): asserts valu
 }
 
 /**
- * Validates that a value is an object with the specified property.
- * This combines object validation with property checking in a type-safe way.
- * 
- * @param value - The value to validate
- * @param prop - The required property name
- * @param objectName - The name of the object being validated (used in error messages)
- * @throws {ValidationError} If the value is not an object or lacks the required property
- * 
- * @example
- * ```ts
- * // Validates request has params property
- * validateObjectWithProperty(request, 'params', 'Request');
- * // request.params is now typed as unknown
- * ```
- */
-function validateObjectWithProperty<K extends string>(
-  value: unknown,
-  prop: K,
-  objectName: string
-): asserts value is { [P in K]: unknown } {
-  if (!isObject(value)) {
-    throw new ValidationError(`${objectName} must be an object`);
-  }
-  if (!hasProperty(value, prop)) {
-    throw new ValidationError(`${objectName} must contain ${prop}`);
-  }
-}
-
-/**
  * Validates a resource call request structure.
  * Ensures the request has the correct shape and required fields.
  * 
@@ -116,6 +131,13 @@ function validateObjectWithProperty<K extends string>(
  * - A 'params' object property
  * - A 'uri' string property within params
  * - A non-empty uri value
+ * 
+ * Validation order:
+ * 1. Request is an object
+ * 2. Request has params property
+ * 3. Params is an object
+ * 4. Params has uri property
+ * 5. Uri is a non-empty string
  * 
  * @param request - The request to validate
  * @throws {ValidationError} If any validation step fails
@@ -134,13 +156,19 @@ function validateObjectWithProperty<K extends string>(
  * ```
  */
 export function validateResourceCallRequest(request: unknown): asserts request is ResourceCallRequest {
-  // Validate request object and params property
-  validateObjectWithProperty(request, 'params', 'Request');
-  
-  // Validate params object and uri property
-  validateObjectWithProperty(request.params, 'uri', 'Request params');
-  
-  // Validate uri is a non-empty string
+  // First validate that request is an object
+  validateObject(request, 'Request');
+
+  // Then validate it has the params property
+  validateObjectProperty(request, 'params', 'Request');
+
+  // Then validate that params is an object
+  validateObject(request.params, 'Request params');
+
+  // Then validate it has the uri property
+  validateObjectProperty(request.params, 'uri', 'Request params');
+
+  // Finally validate the uri value
   validateNonEmptyString(request.params.uri, 'Request uri');
 }
 
