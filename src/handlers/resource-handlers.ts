@@ -15,11 +15,9 @@ export interface ResourceCallRequest {
   };
 }
 
-const systemPromptService = new SystemPromptService();
-
-export async function handleListResources() {
+export async function handleListResources(service: SystemPromptService = new SystemPromptService()) {
   try {
-    const blocks = await systemPromptService.listBlocks();
+    const blocks = await service.listBlocks();
 
     return {
       resources: blocks.map((block: Block) => ({
@@ -36,7 +34,10 @@ export async function handleListResources() {
   }
 }
 
-export async function handleResourceCall(request: ResourceCallRequest) {
+export async function handleResourceCall(
+  request: ResourceCallRequest,
+  service: SystemPromptService = new SystemPromptService()
+) {
   const { uri } = request.params;
   const match = uri.match(/^resource:\/\/\/block\/(.+)$/);
 
@@ -49,7 +50,7 @@ export async function handleResourceCall(request: ResourceCallRequest) {
   const blockId = match[1];
 
   try {
-    const block = await systemPromptService.getBlock(blockId);
+    const block = await service.getBlock(blockId);
 
     return {
       contents: [
