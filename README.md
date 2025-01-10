@@ -1,5 +1,7 @@
 # systemprompt-agent-server
 
+[![smithery badge](https://smithery.ai/badge/systemprompt-agent-server)](https://smithery.ai/server/systemprompt-agent-server)
+
 A specialized Model Context Protocol (MCP) server that integrates with [systemprompt.io](https://systemprompt.io) to provide powerful prompt management capabilities. This server enables
 seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to
 provide a complete voice-powered AI workflow solution.
@@ -72,19 +74,12 @@ npm run watch
 
 ## Installation
 
-To use with Claude Desktop, add the server config:
+### Installing via Smithery
 
-On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+To install SystemPrompt Agent for Claude Desktop automatically via [Smithery](https://smithery.ai/server/systemprompt-agent-server):
 
-```json
-{
-  "mcpServers": {
-    "systemprompt-agent-server": {
-      "command": "/path/to/systemprompt-agent-server/build/index.js"
-    }
-  }
-}
+```bash
+npx -y @smithery/cli install systemprompt-agent-server --client claude
 ```
 
 ### Debugging
