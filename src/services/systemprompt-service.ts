@@ -1,12 +1,10 @@
-import {
+import type {
+  Block,
   CreatePromptInput,
   EditPromptInput,
-  CreateBlockInput,
-  EditBlockInput,
   PromptCreationResult,
-  BlockCreationResult,
-  Block,
 } from "../types/index.js";
+import { handleApiError, handleServiceError } from "../utils/error-handling.js";
 
 export class SystemPromptService {
   private apiKey: string;
@@ -35,54 +33,80 @@ export class SystemPromptService {
       let responseData;
       try {
         responseData = await response.json();
-      } catch (e) {
-        throw new Error("API request failed");
+      } catch (error) {
+        return handleServiceError(error, "parse API response");
       }
 
       if (!response.ok) {
-        throw new Error(responseData.message || "API request failed");
+        return handleApiError(responseData);
       }
 
       return responseData;
-    } catch (error: any) {
-      if (error.message) {
-        throw error;
-      }
-      throw new Error("API request failed");
+    } catch (error) {
+      return handleServiceError(error, "make API request");
     }
   }
 
   async getAllPrompts(): Promise<PromptCreationResult[]> {
-    return this.request<PromptCreationResult[]>("/prompt", "GET");
+    try {
+      return await this.request<PromptCreationResult[]>("/prompts", "GET");
+    } catch (error) {
+      return handleServiceError(error, "fetch prompts");
+    }
   }
 
   async createPrompt(data: CreatePromptInput): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>("/prompt", "POST", data);
+    try {
+      return await this.request<PromptCreationResult>("/prompts", "POST", data);
+    } catch (error) {
+      return handleServiceError(error, "create prompt");
+    }
   }
 
   async editPrompt(
     uuid: string,
-    data: Partial<CreatePromptInput>
+    data: EditPromptInput
   ): Promise<PromptCreationResult> {
-    return this.request<PromptCreationResult>(`/prompt/${uuid}`, "PUT", data);
-  }
-
-  async createBlock(data: CreateBlockInput): Promise<BlockCreationResult> {
-    return this.request<BlockCreationResult>("/block", "POST", data);
-  }
-
-  async editBlock(
-    uuid: string,
-    data: Partial<CreateBlockInput>
-  ): Promise<BlockCreationResult> {
-    return this.request<BlockCreationResult>(`/block/${uuid}`, "PUT", data);
+    try {
+      return await this.request<PromptCreationResult>(
+        `/prompts/${uuid}`,
+        "PUT",
+        data
+      );
+    } catch (error) {
+      return handleServiceError(error, "edit prompt");
+    }
   }
 
   async listBlocks(): Promise<Block[]> {
-    return this.request<Block[]>("/block", "GET");
+    try {
+      return await this.request<Block[]>("/blocks", "GET");
+    } catch (error) {
+      return handleServiceError(error, "list blocks");
+    }
   }
 
   async getBlock(blockId: string): Promise<Block> {
-    return this.request<Block>(`/block/${blockId}`, "GET");
+    try {
+      return await this.request<Block>(`/blocks/${blockId}`, "GET");
+    } catch (error) {
+      return handleServiceError(error, "get block");
+    }
+  }
+
+  async createBlock(data: any): Promise<Block> {
+    try {
+      return await this.request<Block>("/blocks", "POST", data);
+    } catch (error) {
+      return handleServiceError(error, "create block");
+    }
+  }
+
+  async editBlock(blockId: string, data: any): Promise<Block> {
+    try {
+      return await this.request<Block>(`/blocks/${blockId}`, "PUT", data);
+    } catch (error) {
+      return handleServiceError(error, "edit block");
+    }
   }
 }

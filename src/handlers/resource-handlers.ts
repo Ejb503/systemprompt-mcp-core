@@ -1,6 +1,7 @@
 import { PromptTemplate } from "../types/index.js";
 import { SystemPromptService } from "../services/systemprompt-service.js";
 import type { Block } from "../types/index.js";
+import { handleServiceError } from "../utils/error-handling.js";
 
 export interface Resource {
   uri: string;
@@ -27,10 +28,8 @@ export async function handleListResources(service: SystemPromptService = new Sys
         description: block.description || `${block.type} block: ${block.name}`,
       })),
     };
-  } catch (error: any) {
-    throw new Error(
-      `Failed to fetch blocks: ${error.message || "Unknown error"}`
-    );
+  } catch (error) {
+    handleServiceError(error, "fetch blocks");
   }
 }
 
@@ -61,9 +60,7 @@ export async function handleResourceCall(
         },
       ],
     };
-  } catch (error: any) {
-    throw new Error(
-      `Failed to fetch block content: ${error.message || "Unknown error"}`
-    );
+  } catch (error) {
+    handleServiceError(error, "fetch block content");
   }
 }
