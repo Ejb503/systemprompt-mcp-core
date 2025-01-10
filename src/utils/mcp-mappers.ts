@@ -10,6 +10,25 @@ import type {
 } from "../types/index.js";
 
 /**
+ * Maps input schema properties to MCP argument format.
+ * Shared between single prompt and list prompt mappings.
+ */
+function mapPromptArguments(prompt: SystempromptPromptResponse) {
+  return Object.entries(prompt.input.schema.properties || {})
+    .map(([name, schema]) => {
+      if (typeof schema === "boolean") return null;
+      if (typeof schema !== "object" || schema === null) return null;
+      return {
+        name,
+        description:
+          "description" in schema ? String(schema.description || "") : "",
+        required: prompt.input.schema.required?.includes(name) || false,
+      };
+    })
+    .filter((arg): arg is NonNullable<typeof arg> => arg !== null);
+}
+
+/**
  * Maps a single prompt to the MCP GetPromptResult format.
  * Used when retrieving a single prompt's details.
  */
@@ -17,36 +36,19 @@ export function mapPromptToGetPromptResult(
   prompt: SystempromptPromptResponse
 ): GetPromptResult {
   return {
-    id: prompt.id,
-    metadata: {
-      title: prompt.metadata.title,
-      description: prompt.metadata.description,
-      created: prompt.metadata.created,
-      updated: prompt.metadata.updated,
-      version: prompt.metadata.version,
-      status: prompt.metadata.status,
-      author: prompt.metadata.author,
-      log_message: prompt.metadata.log_message,
-    },
-    instruction: {
-      static: prompt.instruction.static,
-      dynamic: prompt.instruction.dynamic,
-      state: prompt.instruction.state,
-    },
-    input: {
-      name: prompt.input.name,
-      description: prompt.input.description,
-      type: prompt.input.type,
-      schema: prompt.input.schema,
-    },
-    output: {
-      name: prompt.output.name,
-      description: prompt.output.description,
-      type: prompt.output.type,
-      schema: prompt.output.schema,
-    },
-    messages: [], // Required by MCP schema
-    _link: prompt._link,
+    name: prompt.metadata.title,
+    description: prompt.metadata.description,
+    messages: [
+      {
+        role: "assistant",
+        content: {
+          type: "text",
+          text: prompt.instruction.static,
+        },
+      },
+    ],
+    arguments: mapPromptArguments(prompt),
+    _meta: { prompt },
   };
 }
 
@@ -61,9 +63,9 @@ export function mapPromptsToListPromptsResult(
     prompts: prompts.map((prompt) => ({
       name: prompt.metadata.title,
       description: prompt.metadata.description,
-      arguments: [],
+      arguments: mapPromptArguments(prompt),
     })),
-    _meta: {},
+    _meta: { prompts },
   };
 }
 
@@ -82,7 +84,7 @@ export function mapBlockToReadResourceResult(
         text: block.content,
       },
     ],
-    _meta: {},
+    _meta: { block },
   };
 }
 
@@ -100,6 +102,6 @@ export function mapBlocksToListResourcesResult(
       description: block.metadata.description || undefined,
       mimeType: "text/plain",
     })),
-    _meta: {},
+    _meta: { blocks },
   };
 }

@@ -38,7 +38,7 @@ export async function handleGetPrompt(
     }
 
     return {
-      _meta: {},
+      _meta: { prompt },
       tools: [],
       ...mapPromptToGetPromptResult(prompt),
     };

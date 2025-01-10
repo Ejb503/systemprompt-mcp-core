@@ -56,6 +56,10 @@ interface DeleteArgs {
   uuid: string;
 }
 
+interface FetchResourceArgs {
+  uuid: string;
+}
+
 const TOOLS: Tool[] = [
   {
     name: "systemprompt_create_prompt",
@@ -228,6 +232,20 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "systemprompt_fetch_resource",
+    description: "Fetch an existing resource",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        uuid: {
+          type: "string" as const,
+          description: "UUID of the resource to fetch",
+        },
+      },
+      required: ["uuid"],
+    },
+  },
+  {
     name: "systemprompt_delete_resource",
     description: "Delete an existing resource",
     inputSchema: {
@@ -391,6 +409,19 @@ export async function handleToolCall(
             {
               type: "text",
               text: `Updated resource: ${result.metadata.title}`,
+            },
+          ],
+        };
+      }
+
+      case "systemprompt_fetch_resource": {
+        const args = request.params.arguments as unknown as FetchResourceArgs;
+        const result = await service.getBlock(args.uuid);
+        return {
+          content: [
+            {
+              type: "text",
+              text: result.content,
             },
           ],
         };

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.9] - 2025-01-10
+
+### Added
+
+- Added new `systemprompt_fetch_resource` tool for retrieving resource content
+- Added metadata to prompt and resource responses for better debugging
+
+### Changed
+
+- Refactored prompt argument mapping for improved consistency
+- Enhanced prompt result mapping with more detailed metadata
+
 ## [1.0.6] - 2025-01-09
 
 ### Changed
