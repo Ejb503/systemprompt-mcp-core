@@ -1,15 +1,7 @@
-import { PromptTemplate } from "../types/index.js";
 import { SystemPromptService } from "../services/systemprompt-service.js";
-import type { Block } from "../types/index.js";
 import { handleServiceError } from "../utils/error-handling.js";
-import { parseResourceUri, createResourceUri, ResourceUriError } from "../utils/uri-parser.js";
-
-export interface Resource {
-  uri: string;
-  mimeType: string;
-  name: string;
-  description: string;
-}
+import { parseResourceUri, ResourceUriError } from "../utils/uri-parser.js";
+import { Resource, ResourceContent, mapBlocksToResources, mapBlockToContent } from "../utils/resource-mapper.js";
 
 export interface ResourceCallRequest {
   params: {
@@ -17,27 +9,31 @@ export interface ResourceCallRequest {
   };
 }
 
-export async function handleListResources(service: SystemPromptService = new SystemPromptService()) {
+export interface ResourceListResponse {
+  resources: Resource[];
+}
+
+export interface ResourceCallResponse {
+  contents: ResourceContent[];
+}
+
+export async function handleListResources(
+  service: SystemPromptService = new SystemPromptService()
+): Promise<ResourceListResponse> {
   try {
     const blocks = await service.listBlocks();
-
     return {
-      resources: blocks.map((block: Block) => ({
-        uri: createResourceUri('block', block.id),
-        mimeType: "text/plain",
-        name: block.name,
-        description: block.description || `${block.type} block: ${block.name}`,
-      })),
+      resources: mapBlocksToResources(blocks),
     };
   } catch (error) {
-    handleServiceError(error, "fetch blocks");
+    return handleServiceError(error, "fetch blocks");
   }
 }
 
 export async function handleResourceCall(
   request: ResourceCallRequest,
   service: SystemPromptService = new SystemPromptService()
-) {
+): Promise<ResourceCallResponse> {
   try {
     const { type, id } = parseResourceUri(request.params.uri);
 
@@ -47,20 +43,13 @@ export async function handleResourceCall(
     }
 
     const block = await service.getBlock(id);
-
     return {
-      contents: [
-        {
-          uri: request.params.uri,
-          mimeType: "text/plain",
-          text: block.content,
-        },
-      ],
+      contents: [mapBlockToContent(block, request.params.uri)],
     };
   } catch (error) {
     if (error instanceof ResourceUriError) {
       throw error;
     }
-    handleServiceError(error, "fetch block content");
+    return handleServiceError(error, "fetch block content");
   }
 }
