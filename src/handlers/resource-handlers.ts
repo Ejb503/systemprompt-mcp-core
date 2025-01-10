@@ -1,7 +1,7 @@
 import { SystemPromptService } from "../services/systemprompt-service.js";
 import { handleServiceError } from "../utils/error-handling.js";
 import { parseResourceUri, ResourceUriError } from "../utils/uri-parser.js";
-import { Resource, ResourceContent, mapBlocksToResources, mapBlockToContent } from "../utils/resource-mapper.js";
+import { BlockResource, ResourceContent, mapBlocksToResources, mapBlockToContent } from "../utils/resource-mapper.js";
 
 export interface ResourceCallRequest {
   params: {
@@ -10,7 +10,7 @@ export interface ResourceCallRequest {
 }
 
 export interface ResourceListResponse {
-  resources: Resource[];
+  resources: BlockResource[];
 }
 
 export interface ResourceCallResponse {
