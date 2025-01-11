@@ -1,55 +1,48 @@
-import { SystemPromptService } from "../services/systemprompt-service.js";
-import { handleServiceError } from "../utils/error-handling.js";
-import { parseResourceUri, ResourceUriError } from "../utils/uri-parser.js";
-import { BlockResource, ResourceContent, mapBlocksToResources, mapBlockToContent } from "../utils/resource-mapper.js";
+import { BlockService } from "../services/block-service.js";
+import { parseResourceUri } from "../utils/uri-parser.js";
+import { handleServiceError, ApiError } from "../utils/error-handling.js";
 
-export interface ResourceCallRequest {
-  params: {
-    uri: string;
-  };
-}
-
-export interface ResourceListResponse {
-  resources: BlockResource[];
-}
-
-export interface ResourceCallResponse {
-  contents: ResourceContent[];
-}
-
-export async function handleListResources(
-  service: SystemPromptService = new SystemPromptService()
-): Promise<ResourceListResponse> {
+export async function handleListResources(service: BlockService) {
   try {
     const blocks = await service.listBlocks();
     return {
-      resources: mapBlocksToResources(blocks),
+      resources: blocks.map((block) => ({
+        uri: `resource:///block/${block.id}`,
+        name: block.name,
+        description: block.description,
+        mimeType: "text/plain",
+        type: "block",
+        blockType: block.type
+      }))
     };
   } catch (error) {
-    return handleServiceError(error, "fetch blocks");
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw handleServiceError(error, "fetch blocks");
   }
 }
 
-export async function handleResourceCall(
-  request: ResourceCallRequest,
-  service: SystemPromptService = new SystemPromptService()
-): Promise<ResourceCallResponse> {
+export async function handleResourceCall(request: { params: { uri: string } }, service: BlockService) {
+  const { uri } = request.params;
+  const { id } = parseResourceUri(uri);
+
   try {
-    const { type, id } = parseResourceUri(request.params.uri);
-
-    // Currently we only support block resources
-    if (type !== 'block') {
-      throw new ResourceUriError(`Unsupported resource type: ${type}`);
-    }
-
     const block = await service.getBlock(id);
     return {
-      contents: [mapBlockToContent(block, request.params.uri)],
+      contents: [
+        {
+          uri: `resource:///block/${block.id}`,
+          mimeType: "text/plain",
+          text: block.content
+        }
+      ]
     };
   } catch (error) {
-    if (error instanceof ResourceUriError) {
+    if (error instanceof ApiError) {
       throw error;
     }
-    return handleServiceError(error, "fetch block content");
+    const message = error instanceof Error ? error.message || "Unknown error" : "Unknown error";
+    throw handleServiceError({ message }, "fetch block content");
   }
 }

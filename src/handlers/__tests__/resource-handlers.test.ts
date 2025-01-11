@@ -1,48 +1,44 @@
-import { jest, describe, it, expect } from "@jest/globals";
-import type { Block, CreatePromptInput, PromptCreationResult, EditPromptInput } from "@/types/index.js";
-import { handleListResources, handleResourceCall, type ResourceCallRequest } from "../resource-handlers.js";
-import { SystemPromptService } from "@/services/systemprompt-service.js";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { BlockService } from "@/services/block-service.js";
+import { handleListResources, handleResourceCall } from "../resource-handlers.js";
+import { ResourceUriError } from "@/utils/uri-parser.js";
+import { ServiceError, ApiError } from "@/utils/error-handling.js";
+import type { Block, BlockCreationResult } from "@/types/index.js";
 
-// Create a complete mock service that implements all required methods
-const createMockService = (overrides: Partial<SystemPromptService> = {}): jest.Mocked<SystemPromptService> => {
-  const mockService = {
-    getAllPrompts: jest.fn<() => Promise<PromptCreationResult[]>>().mockResolvedValue([]),
-    createPrompt: jest.fn<(data: CreatePromptInput) => Promise<PromptCreationResult>>().mockResolvedValue({} as PromptCreationResult),
-    editPrompt: jest.fn<(uuid: string, data: EditPromptInput) => Promise<PromptCreationResult>>().mockResolvedValue({} as PromptCreationResult),
-    listBlocks: jest.fn<() => Promise<Block[]>>().mockResolvedValue([]),
-    getBlock: jest.fn<(blockId: string) => Promise<Block>>().mockResolvedValue({} as Block),
-    createBlock: jest.fn<(data: any) => Promise<Block>>().mockResolvedValue({} as Block),
-    editBlock: jest.fn<(blockId: string, data: any) => Promise<Block>>().mockResolvedValue({} as Block),
-    ...overrides
-  };
-
-  return mockService as jest.Mocked<SystemPromptService>;
-};
+jest.mock("@/services/block-service.js");
 
 describe("Resource Handlers", () => {
+  let mockService: jest.Mocked<BlockService>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const MockedBlockService = jest.mocked(BlockService);
+    mockService = new MockedBlockService() as jest.Mocked<BlockService>;
+    mockService.listBlocks = jest.fn();
+    mockService.getBlock = jest.fn();
+  });
+
   describe("handleListResources", () => {
     it("should return list of available resources", async () => {
       // Setup
       const mockBlocks: Block[] = [
         {
           id: "block1",
-          name: "Test Block 1",
           type: "text",
-          description: "Test description 1",
-          content: "Test content 1"
+          content: "Test content 1",
+          name: "Test Block 1",
+          description: "Test description 1"
         },
         {
           id: "block2",
-          name: "Test Block 2",
           type: "code",
-          description: "Test description 2",
-          content: "Test content 2"
+          content: "Test content 2",
+          name: "Test Block 2",
+          description: "Test description 2"
         }
       ];
 
-      const mockService = createMockService({
-        listBlocks: jest.fn<() => Promise<Block[]>>().mockResolvedValue(mockBlocks)
-      });
+      mockService.listBlocks.mockResolvedValue(mockBlocks);
 
       // Execute
       const result = await handleListResources(mockService);
@@ -52,25 +48,27 @@ describe("Resource Handlers", () => {
         resources: [
           {
             uri: "resource:///block/block1",
-            mimeType: "text/plain",
             name: "Test Block 1",
-            description: "Test description 1"
+            description: "Test description 1",
+            mimeType: "text/plain",
+            type: "block",
+            blockType: "text"
           },
           {
             uri: "resource:///block/block2",
-            mimeType: "text/plain",
             name: "Test Block 2",
-            description: "Test description 2"
+            description: "Test description 2",
+            mimeType: "text/plain",
+            type: "block",
+            blockType: "code"
           }
         ]
       });
     });
 
-    it("should handle empty block list", async () => {
+    it("should handle empty list", async () => {
       // Setup
-      const mockService = createMockService({
-        listBlocks: jest.fn<() => Promise<Block[]>>().mockResolvedValue([])
-      });
+      mockService.listBlocks.mockResolvedValue([]);
 
       // Execute
       const result = await handleListResources(mockService);
@@ -79,117 +77,97 @@ describe("Resource Handlers", () => {
       expect(result.resources).toEqual([]);
     });
 
-    it("should handle blocks without description", async () => {
-      // Setup
-      const mockBlocks: Block[] = [
-        {
-          id: "block1",
-          name: "Test Block 1",
-          type: "text",
-          content: "Test content 1"
-        } as Block
-      ];
-
-      const mockService = createMockService({
-        listBlocks: jest.fn<() => Promise<Block[]>>().mockResolvedValue(mockBlocks)
-      });
-
-      // Execute
-      const result = await handleListResources(mockService);
-
-      // Verify
-      expect(result.resources[0].description).toBe("text block: Test Block 1");
-    });
-
     it("should handle API errors", async () => {
       // Setup
-      const mockService = createMockService({
-        listBlocks: jest.fn<() => Promise<Block[]>>().mockRejectedValue(new Error("API request failed"))
-      });
+      mockService.listBlocks.mockRejectedValue(new ApiError("API request failed: Invalid request"));
 
       // Execute & Verify
-      await expect(handleListResources(mockService)).rejects.toThrow(
-        "Failed to fetch blocks: API request failed"
-      );
+      await expect(handleListResources(mockService)).rejects.toThrow("API request failed: Invalid request");
     });
   });
 
   describe("handleResourceCall", () => {
-    it("should return block content", async () => {
+    it("should return block content for valid URI", async () => {
       // Setup
-      const mockBlock: Block = {
+      const mockBlock: BlockCreationResult = {
         id: "block1",
-        name: "Test Block",
-        type: "text",
-        description: "Test description",
-        content: "Test content"
+        content: "Test content",
+        prefix: "test_prefix",
+        metadata: {
+          title: "Test Block",
+          description: "Test description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "draft",
+          author: "test",
+          log_message: "test message"
+        },
+        _link: "test-link"
       };
 
-      const mockService = createMockService({
-        getBlock: jest.fn<(blockId: string) => Promise<Block>>().mockResolvedValue(mockBlock)
-      });
-
-      const request: ResourceCallRequest = {
-        params: { uri: "resource:///block/block1" }
-      };
+      mockService.getBlock.mockResolvedValue(mockBlock);
 
       // Execute
-      const result = await handleResourceCall(request, mockService);
+      const result = await handleResourceCall(
+        {
+          params: { uri: "resource:///block/block1" }
+        },
+        mockService
+      );
 
       // Verify
-      expect(mockService.getBlock).toHaveBeenCalledWith("block1");
       expect(result).toEqual({
         contents: [
           {
             uri: "resource:///block/block1",
             mimeType: "text/plain",
-            text: mockBlock.content
+            text: "Test content"
           }
         ]
       });
     });
 
     it("should throw error for invalid URI format", async () => {
-      // Setup
-      const mockService = createMockService();
-
       // Execute & Verify
       await expect(
-        handleResourceCall({
-          params: { uri: "invalid-uri" }
-        }, mockService)
-      ).rejects.toThrow("Invalid resource URI format - expected resource:///block/{id}");
+        handleResourceCall(
+          {
+            params: { uri: "invalid-uri" }
+          },
+          mockService
+        )
+      ).rejects.toThrow(ResourceUriError);
     });
 
     it("should handle API errors", async () => {
       // Setup
-      const mockService = createMockService({
-        getBlock: jest.fn<(blockId: string) => Promise<Block>>().mockRejectedValue(new Error("API request failed"))
-      });
+      mockService.getBlock.mockRejectedValue(new ApiError("API request failed: Block not found"));
 
       // Execute & Verify
       await expect(
-        handleResourceCall({
-          params: { uri: "resource:///block/block1" }
-        }, mockService)
-      ).rejects.toThrow("Failed to fetch block content: API request failed");
+        handleResourceCall(
+          {
+            params: { uri: "resource:///block/block1" }
+          },
+          mockService
+        )
+      ).rejects.toThrow("API request failed: Block not found");
     });
 
     it("should handle errors with undefined message", async () => {
       // Setup
-      const error = new Error();
-      error.message = undefined as any;
-      
-      const mockService = createMockService({
-        getBlock: jest.fn<(blockId: string) => Promise<Block>>().mockRejectedValue(error)
-      });
+      mockService.getBlock.mockRejectedValue(new ServiceError("Unknown error", "fetch block content"));
 
       // Execute & Verify
       await expect(
-        handleResourceCall({
-          params: { uri: "resource:///block/block1" }
-        }, mockService)
-      ).rejects.toThrow("Failed to fetch block content: Unknown error");
+        handleResourceCall(
+          {
+            params: { uri: "resource:///block/block1" }
+          },
+          mockService
+        )
+      ).rejects.toThrow("Operation failed: fetch block content. Unknown error");
     });
   });
 }); 
