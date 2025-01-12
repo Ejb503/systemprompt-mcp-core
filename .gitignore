@@ -10,3 +10,5 @@ agent/*
 coverage/
 output/
 scripts/
+
+.vscode/
