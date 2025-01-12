@@ -100,6 +100,13 @@ function isValidResourceType(type: string): boolean {
  * ```
  */
 export function parseResourceUri(uri: string): ParsedResourceUri {
+  if (!uri || typeof uri !== 'string') {
+    throw new ResourceUriError(
+      'Resource URI must be a non-empty string',
+      'INVALID_RESOURCE_ID'
+    );
+  }
+
   const match = uri.match(RESOURCE_URI_REGEX);
 
   if (!match || match.length < 3) {
@@ -158,6 +165,20 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
  * ```
  */
 export function createResourceUri(type: string, id: string): string {
+  if (!type || typeof type !== 'string') {
+    throw new ResourceUriError(
+      'Resource type must be a non-empty string',
+      'INVALID_RESOURCE_TYPE'
+    );
+  }
+
+  if (!id || typeof id !== 'string') {
+    throw new ResourceUriError(
+      'Resource ID must be a non-empty string',
+      'INVALID_RESOURCE_ID'
+    );
+  }
+
   if (!isValidResourceType(type)) {
     throw new ResourceUriError(
       `Unsupported resource type: ${type}`,
