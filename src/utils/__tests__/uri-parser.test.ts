@@ -14,7 +14,7 @@ describe('URI Parser', () => {
   };
 
   describe('parseResourceUri', () => {
-    it('should parse valid block URIs', () => {
+    it('should parse URI with valid block type and hyphenated ID', () => {
       const result = parseResourceUri('resource:///block/123-abc');
       expect(result).toEqual({
         type: 'block',
@@ -89,7 +89,7 @@ describe('URI Parser', () => {
   });
 
   describe('createResourceUri', () => {
-    it('should create valid URIs from components', () => {
+    it('should create valid URI from block type and alphanumeric ID', () => {
       const uri = createResourceUri('block', '123-abc');
       expect(uri).toBe('resource:///block/123-abc');
     });
@@ -161,6 +161,33 @@ describe('URI Parser', () => {
       const { type, id } = parseResourceUri(uri);
       const recreatedUri = createResourceUri(type, id);
       expect(recreatedUri).toBe(uri);
+    });
+  });
+
+  describe('edge cases', () => {
+    describe('maximum allowed special characters', () => {
+      it('should allow maximum number of hyphens in valid ID', () => {
+        // Testing ID with maximum allowed hyphens while maintaining valid format
+        const complexId = 'a-b-c-d-e-f-g-h-i-j';
+        expect(() => parseResourceUri(`resource:///block/${complexId}`)).not.toThrow();
+        expect(() => createResourceUri('block', complexId)).not.toThrow();
+      });
+    });
+
+    describe('boundary conditions', () => {
+      it('should handle IDs at maximum allowed length', () => {
+        // 128 characters is the maximum length for IDs
+        const maxLengthId = 'a'.repeat(128);
+        expect(() => parseResourceUri(`resource:///block/${maxLengthId}`)).not.toThrow();
+        expect(() => createResourceUri('block', maxLengthId)).not.toThrow();
+      });
+
+      it('should handle IDs with mixed alphanumeric and hyphens at max length', () => {
+        // Creating a complex ID at max length with mixed content
+        const complexMaxId = 'a1-'.repeat(42) + 'a1'; // 128 characters
+        expect(() => parseResourceUri(`resource:///block/${complexMaxId}`)).not.toThrow();
+        expect(() => createResourceUri('block', complexMaxId)).not.toThrow();
+      });
     });
   });
 }); 
