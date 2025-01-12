@@ -60,7 +60,7 @@ const VALID_RESOURCE_TYPES = new Set(['block']);
 
 /**
  * Checks if a resource type is supported.
- * Case-insensitive comparison is used for flexibility.
+ * Case-sensitive comparison is used to enforce consistent casing.
  * 
  * @param type - The resource type to validate
  * @returns True if the type is supported, false otherwise
@@ -73,7 +73,7 @@ const VALID_RESOURCE_TYPES = new Set(['block']);
  * ```
  */
 function isValidResourceType(type: string): boolean {
-  return VALID_RESOURCE_TYPES.has(type.toLowerCase());
+  return VALID_RESOURCE_TYPES.has(type);
 }
 
 /**
@@ -115,17 +115,19 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
   // [2] contains the second capture group (id): alphanumeric + hyphen
   const [, type, id] = match;
 
-  if (!isValidResourceType(type)) {
-    throw new ResourceUriError(
-      `Unsupported resource type: ${type}`,
-      'INVALID_RESOURCE_TYPE'
-    );
-  }
-
+  // Validate ID format first
   if (!id || !RESOURCE_ID_REGEX.test(id)) {
     throw new ResourceUriError(
       'Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters',
       'INVALID_RESOURCE_ID'
+    );
+  }
+
+  // Then validate resource type
+  if (!isValidResourceType(type)) {
+    throw new ResourceUriError(
+      `Unsupported resource type: ${type}`,
+      'INVALID_RESOURCE_TYPE'
     );
   }
 

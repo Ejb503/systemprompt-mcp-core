@@ -19,9 +19,49 @@ A specialized Model Context Protocol (MCP) server that integrates with [systempr
 
 ### Tools
 
-- `create_note` - Create new text notes
-  - Takes title and content as required parameters
-  - Stores note in server state
+#### `create_prompt`
+
+Create a new prompt with customizable instruction components, input/output schemas, and metadata. The instruction can contain static content (always included), state content (persisted between calls), and dynamic content (provided at runtime). Input and output schemas define the expected format and type of data. Use this to create reusable prompt templates that can be executed later.
+
+The prompt contains the following fields:
+
+- `instruction`: The main instruction for the prompt, which can include static content, state content, and dynamic content.
+- `input_schema`: The expected input format and type of data for the prompt.
+- `output_schema`: The expected output format and type of data for the prompt.
+- `metadata`: Additional metadata for the prompt, such as tags or categories.
+
+#### `edit_prompt`
+
+Modify an existing prompt template by its UUID. You can update any combination of the instruction components, input/output schemas, or metadata. Only the specified fields will be updated, leaving others unchanged. This is useful for iterating on prompt designs or fixing issues in existing prompts.
+
+The prompt contains the following fields:
+
+- `uuid`: The UUID of the prompt to edit.
+- `instruction`: The main instruction for the prompt, which can include static content, state content, and dynamic content.
+- `input_schema`: The expected input format and type of data for the prompt.
+- `output_schema`: The expected output format and type of data for the prompt.
+- `metadata`: Additional metadata for the prompt, such as tags or categories.
+
+#### `create_block`
+
+Create a new block (resource) that can be referenced by prompts. Blocks are reusable content snippets that can be included in multiple prompts, such as common instructions, context, or constraints. Each block has a unique prefix for easy referencing in prompts using the {{prefix}} syntax.
+
+The block contains the following fields:
+
+- `content`: The content of the block, which can include static text, state content, and dynamic content.
+- `prefix`: The unique prefix for the block, used in prompts to reference the block content.
+- `metadata`: Additional metadata for the block, such as tags or categories.
+
+#### `edit_block`
+
+Modify an existing block (resource) by its UUID. You can update the content, prefix, or metadata of the block. Only the specified fields will be updated, leaving others unchanged. This is useful for maintaining and improving shared prompt components.
+
+The block contains the following fields:
+
+- `uuid`: The UUID of the block to edit.
+- `content`: The content of the block, which can include static text, state content, and dynamic content.
+- `prefix`: The unique prefix for the block, used in prompts to reference the block content.
+- `metadata`: Additional metadata for the block, such as tags or categories.
 
 ### Prompts
 
@@ -135,13 +175,13 @@ When mocking services with ESM, follow this pattern:
 
 ```typescript
 // 1. Import types first
-import type { MyType } from "../../types/index.js";
+import type { MyType } from "@/types/index.js";
 
 // 2. Declare mock functions with proper types
 const mockMethod = jest.fn<(arg: string) => Promise<MyType>>();
 
 // 3. Set up the mock before imports that use it
-jest.mock("../../services/my-service.js", () => ({
+jest.mock("@/services/my-service.js", () => ({
   MyService: jest.fn(() => ({
     method: mockMethod,
   })),
@@ -149,7 +189,7 @@ jest.mock("../../services/my-service.js", () => ({
 
 // 4. Import the actual modules after mocking
 import { handler } from "../handler.js";
-import { MyService } from "../../services/my-service.js";
+import { MyService } from "@/services/my-service.js";
 
 describe("Handler", () => {
   beforeEach(() => {

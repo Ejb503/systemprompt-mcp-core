@@ -1,4 +1,4 @@
-import type { Block } from "../types/index.js";
+import type { Block, BlockCreationResult } from "../types/index.js";
 import { createResourceUri } from "./uri-parser.js";
 
 /**
@@ -51,7 +51,7 @@ export function mapBlockToResource(block: Block): BlockResource {
 /**
  * Maps a block to a resource content representation
  */
-export function mapBlockToContent(block: Block, uri: string): ResourceContent {
+export function mapBlockToContent(block: BlockCreationResult, uri: string): ResourceContent {
   return {
     uri,
     mimeType: "text/plain",

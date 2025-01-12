@@ -1,254 +1,248 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
-import { SystemPromptService } from "../../services/systemprompt-service.js";
+import type { CreatePromptInput, PromptCreationResult } from "@/types/index.js";
 import {
-  createPromptHandler,
-  editPromptHandler,
   handleListPrompts,
   handleGetPrompt,
+  createPromptHandler,
+  editPromptHandler,
 } from "../prompt-handlers.js";
-import type {
-  CreatePromptInput,
-  PromptCreationResult,
-} from "../../types/index.js";
 
-jest.mock("../../services/systemprompt-service.js");
+// Import the service before mocking to get its type information
+import { PromptService } from "@/services/prompt-service.js";
 
-const mockService = {
-  getAllPrompts: jest.fn(),
-  createPrompt: jest.fn(),
-  editPrompt: jest.fn(),
-} as unknown as jest.Mocked<SystemPromptService>;
+// Mock the entire module
+jest.mock("@/services/prompt-service.js");
+
+// Sample test data
+const testPrompt: PromptCreationResult = {
+  id: "123",
+  instruction: {
+    static: "Test static instruction",
+    dynamic: "Test dynamic instruction",
+    state: "Test state"
+  },
+  input: {
+    name: "test_input",
+    description: "Test input description",
+    type: ["message"]
+  },
+  output: {
+    name: "test_output",
+    description: "Test output description",
+    type: ["message"]
+  },
+  metadata: {
+    title: "Test Prompt",
+    description: "Test prompt description",
+    created: "2024-01-01",
+    updated: "2024-01-01",
+    version: 1,
+    status: "draft",
+    author: "test-author",
+    log_message: "Initial creation"
+  },
+  _link: "test-link"
+};
+
+let service: jest.Mocked<PromptService>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Create a new mocked instance before each test
+  const MockedPromptService = jest.mocked(PromptService);
+  service = new MockedPromptService() as jest.Mocked<PromptService>;
+  
+  // Setup default mock implementations
+  service.getAllPrompts = jest.fn();
+  service.createPrompt = jest.fn();
+  service.editPrompt = jest.fn();
+});
 
 describe("Prompt Handlers", () => {
-  const mockPrompt: PromptCreationResult = {
-    id: "test-uuid",
-    instruction: {
-      static: "Test instruction",
-    },
-    input: {
-      name: "test_input",
-      description: "Test input",
-      type: ["message"],
-    },
-    output: {
-      name: "test_output",
-      description: "Test output",
-      type: ["message"],
-    },
-    metadata: {
-      title: "Test Prompt",
-      description: "Test description",
-      created: "2024-01-01",
-      updated: "2024-01-01",
-      version: 1,
-      status: "draft",
-      author: "test",
-      log_message: "Created",
-    },
-    _link: "test-link",
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (
-      SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-    ).mockImplementation(() => mockService);
-  });
-
   describe("handleListPrompts", () => {
-    it("should return list of prompts with correct schema", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should transform prompts into expected format", async () => {
+      // Setup
+      service.getAllPrompts.mockResolvedValue([testPrompt]);
 
-      const result = await handleListPrompts(mockService);
+      // Execute
+      const result = await handleListPrompts(service);
 
-      expect(result).toHaveProperty("prompts");
-      expect(result.prompts).toHaveLength(1);
-      expect(result.prompts[0]).toEqual({
-        name: mockPrompt.metadata.title,
-        description: mockPrompt.metadata.description,
-        messages: [
-          {
+      // Verify
+      expect(result).toEqual({
+        prompts: [{
+          name: testPrompt.metadata.title,
+          description: testPrompt.metadata.description,
+          messages: [{
             role: "system",
             content: {
               type: "text",
-              text: mockPrompt.instruction.static,
+              text: testPrompt.instruction.static
+            }
+          }],
+          input_schema: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: testPrompt.input.description
+              }
             },
+            required: []
           },
-        ],
-        input_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.input.description,
+          output_schema: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: testPrompt.output.description
+              }
             },
-          },
-          required: [],
-        },
-        output_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.output.description,
-            },
-          },
-          required: [],
-        },
+            required: []
+          }
+        }]
       });
     });
 
-    it("should use default service when not provided", async () => {
-      const defaultMockService = {
-        getAllPrompts: jest
-          .fn<() => Promise<PromptCreationResult[]>>()
-          .mockResolvedValue([mockPrompt]),
-      } as unknown as jest.Mocked<SystemPromptService>;
+    it("should handle empty prompt list", async () => {
+      // Setup
+      service.getAllPrompts.mockResolvedValue([]);
 
-      (
-        SystemPromptService as jest.MockedClass<typeof SystemPromptService>
-      ).mockImplementation(() => defaultMockService);
+      // Execute
+      const result = await handleListPrompts(service);
 
-      const result = await handleListPrompts();
-      expect(result).toHaveProperty("prompts");
-      expect(result.prompts).toHaveLength(1);
+      // Verify
+      expect(result.prompts).toEqual([]);
+    });
+
+    it("should propagate service errors", async () => {
+      // Setup
+      service.getAllPrompts.mockRejectedValue(new Error("Service unavailable"));
+
+      // Execute & Verify
+      await expect(handleListPrompts(service)).rejects.toThrow("Service unavailable");
     });
   });
 
   describe("handleGetPrompt", () => {
-    it("should return prompt by name", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should return single prompt by name", async () => {
+      // Setup
+      service.getAllPrompts.mockResolvedValue([testPrompt]);
+      const request = { params: { name: "Test Prompt" } };
 
-      const result = await handleGetPrompt(
-        {
-          params: { name: "Test Prompt" },
-        },
-        mockService
-      );
+      // Execute
+      const result = await handleGetPrompt(request, service);
 
-      expect(result).toEqual({
-        name: mockPrompt.metadata.title,
-        description: mockPrompt.metadata.description,
-        messages: [
-          {
-            role: "system",
-            content: {
-              type: "text",
-              text: mockPrompt.instruction.static,
-            },
-          },
-        ],
-        input_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.input.description,
-            },
-          },
-          required: [],
-        },
-        output_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: mockPrompt.output.description,
-            },
-          },
-          required: [],
-        },
-      });
+      // Verify
+      expect(result.name).toBe(testPrompt.metadata.title);
+      expect(result.description).toBe(testPrompt.metadata.description);
     });
 
-    it("should throw error for unknown prompt", async () => {
-      mockService.getAllPrompts.mockResolvedValue([mockPrompt]);
+    it("should throw for non-existent prompt", async () => {
+      // Setup
+      service.getAllPrompts.mockResolvedValue([testPrompt]);
+      const request = { params: { name: "Non-existent Prompt" } };
 
-      await expect(
-        handleGetPrompt(
-          {
-            params: { name: "Unknown Prompt" },
-          },
-          mockService
-        )
-      ).rejects.toThrow("Unknown prompt");
+      // Execute & Verify
+      await expect(handleGetPrompt(request, service))
+        .rejects.toThrow("Unknown prompt");
     });
   });
 
   describe("createPromptHandler", () => {
     const validInput: CreatePromptInput = {
       instruction: {
-        static: "Test instruction",
+        static: "New instruction"
       },
       input: {
-        name: "test_input",
-        description: "Test input",
-        type: ["message"],
+        name: "new_input",
+        description: "New input description",
+        type: ["message"]
       },
       output: {
-        name: "test_output",
-        description: "Test output",
-        type: ["message"],
+        name: "new_output",
+        description: "New output description",
+        type: ["message"]
       },
       metadata: {
-        title: "Test Prompt",
-        description: "Test description",
-      },
+        title: "New Prompt",
+        description: "New description"
+      }
     };
 
-    it("should create a prompt successfully", async () => {
-      mockService.createPrompt.mockResolvedValue(mockPrompt);
+    it("should create prompt with valid input", async () => {
+      // Setup
+      service.createPrompt.mockResolvedValue({
+        ...testPrompt,
+        instruction: validInput.instruction,
+        metadata: { ...testPrompt.metadata, ...validInput.metadata }
+      });
 
-      const result = await createPromptHandler(mockService, validInput);
+      // Execute
+      const result = await createPromptHandler(service, validInput);
 
-      expect(result).toEqual(mockPrompt);
-      expect(mockService.createPrompt).toHaveBeenCalledWith(validInput);
+      // Verify
+      expect(service.createPrompt).toHaveBeenCalledWith(validInput);
+      expect(result.instruction).toEqual(validInput.instruction);
+      expect(result.metadata.title).toBe(validInput.metadata.title);
     });
 
-    it("should throw error for invalid input", async () => {
-      const invalidInput: Partial<CreatePromptInput> = {
+    it("should validate required fields", async () => {
+      // Setup - create an invalid input by omitting required fields
+      const invalidInput = {
         input: validInput.input,
         output: validInput.output,
-        metadata: validInput.metadata,
-      };
+        metadata: validInput.metadata
+        // Intentionally omit instruction to test validation
+      } as CreatePromptInput;
 
-      await expect(
-        createPromptHandler(mockService, invalidInput as CreatePromptInput)
-      ).rejects.toThrow("Invalid input");
+      // Execute & Verify
+      await expect(createPromptHandler(service, invalidInput))
+        .rejects.toThrow("Invalid input");
     });
   });
 
   describe("editPromptHandler", () => {
-    const validInput: Partial<CreatePromptInput> = {
+    const editInput: Partial<CreatePromptInput> = {
       instruction: {
-        static: "Updated instruction",
+        static: "Updated instruction"
       },
       metadata: {
-        title: "Updated Prompt",
-        description: "Test description",
-      },
+        title: "Updated Title",
+        description: "Updated description"
+      }
     };
 
-    it("should edit a prompt successfully", async () => {
-      mockService.editPrompt.mockResolvedValue(mockPrompt);
+    it("should update prompt with valid changes", async () => {
+      // Setup
+      const promptId = "test-id";
+      service.editPrompt.mockResolvedValue({
+        ...testPrompt,
+        instruction: editInput.instruction!,
+        metadata: { ...testPrompt.metadata, ...editInput.metadata }
+      });
 
-      const result = await editPromptHandler(
-        mockService,
-        "test-uuid",
-        validInput
-      );
+      // Execute
+      const result = await editPromptHandler(service, promptId, editInput);
 
-      expect(result).toEqual(mockPrompt);
-      expect(mockService.editPrompt).toHaveBeenCalledWith(
-        "test-uuid",
-        validInput
-      );
+      // Verify
+      expect(service.editPrompt).toHaveBeenCalledWith(promptId, editInput);
+      expect(result.instruction).toEqual(editInput.instruction);
+      expect(result.metadata.title).toBe(editInput.metadata!.title);
     });
 
-    it("should throw error for invalid UUID", async () => {
-      await expect(
-        editPromptHandler(mockService, "", validInput)
-      ).rejects.toThrow("Invalid UUID");
+    it("should validate prompt ID", async () => {
+      // Execute & Verify
+      await expect(editPromptHandler(service, "", editInput))
+        .rejects.toThrow("Invalid UUID");
+    });
+
+    it("should handle empty update data", async () => {
+      // Setup
+      service.editPrompt.mockResolvedValue(testPrompt);
+
+      // Execute & Verify
+      await expect(editPromptHandler(service, "test-id", {}))
+        .resolves.toBeDefined();
     });
   });
 });

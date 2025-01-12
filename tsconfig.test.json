@@ -1,8 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "types": ["jest", "node"],
     "allowJs": true,
     "resolveJsonModule": true,
@@ -10,20 +10,19 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "*": ["src/*"]
+      "@/*": ["src/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx": "react",
     "strict": true
   },
   "include": [
     "src/**/*.test.ts",
     "src/**/__tests__/**/*",
     "jest.setup.ts",
-    "jest.config.mjs"
+    "jest.config.ts"  // Updated to .ts from .mjs
   ],
   "exclude": ["node_modules"]
 }
