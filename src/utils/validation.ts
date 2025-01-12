@@ -1,5 +1,6 @@
 import { ApplicationError, ErrorCode } from './error-handling.js';
-import type { ResourceCallRequest } from '../handlers/resource-handlers.js';
+import type { ResourceCallRequest } from '../types/index.js';
+import { parseResourceUri, ResourceUriError } from './uri-parser.js';
 
 /**
  * Error thrown when request validation fails.
@@ -11,8 +12,13 @@ import type { ResourceCallRequest } from '../handlers/resource-handlers.js';
  * ```
  */
 export class ValidationError extends ApplicationError {
-  constructor(message: string, code: Extract<ErrorCode, 'VALIDATION_ERROR' | 'INVALID_REQUEST'> = 'VALIDATION_ERROR') {
-    super(message, code, 'ValidationError');
+  constructor(
+    message: string,
+    code: Extract<ErrorCode, 'VALIDATION_ERROR' | 'INVALID_REQUEST'> = 'VALIDATION_ERROR',
+    name: string = 'ValidationError'
+  ) {
+    super(message, code, name);
+    Object.setPrototypeOf(this, ValidationError.prototype);
   }
 }
 
@@ -130,7 +136,7 @@ function validateNonEmptyString(value: unknown, fieldName: string): asserts valu
  * The request must have:
  * - A 'params' object property
  * - A 'uri' string property within params
- * - A non-empty uri value
+ * - A non-empty uri value that matches the resource URI format
  * 
  * Validation order:
  * 1. Request is an object
@@ -138,6 +144,7 @@ function validateNonEmptyString(value: unknown, fieldName: string): asserts valu
  * 3. Params is an object
  * 4. Params has uri property
  * 5. Uri is a non-empty string
+ * 6. Uri matches the resource URI format
  * 
  * @param request - The request to validate
  * @throws {ValidationError} If any validation step fails
@@ -168,8 +175,18 @@ export function validateResourceCallRequest(request: unknown): asserts request i
   // Then validate it has the uri property
   validateObjectProperty(request.params, 'uri', 'Request params');
 
-  // Finally validate the uri value
+  // Then validate the uri value is a non-empty string
   validateNonEmptyString(request.params.uri, 'Request uri');
+
+  // Finally validate the uri format
+  try {
+    parseResourceUri(request.params.uri);
+  } catch (error) {
+    if (error instanceof ResourceUriError) {
+      throw new ValidationError('Request uri has invalid format', 'VALIDATION_ERROR');
+    }
+    throw error;
+  }
 }
 
 /**

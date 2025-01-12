@@ -53,8 +53,10 @@ describe('Validation Utilities', () => {
           fail('Expected validation to throw');
         } catch (error) {
           expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request must be an object');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
+          if (error instanceof ValidationError) {
+            expect(error.message).toBe('Request must be an object');
+            expect(error.code).toBe('VALIDATION_ERROR');
+          }
         }
       });
 
@@ -66,8 +68,10 @@ describe('Validation Utilities', () => {
           fail('Expected validation to throw');
         } catch (error) {
           expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request must contain params');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
+          if (error instanceof ValidationError) {
+            expect(error.message).toBe('Request must contain params');
+            expect(error.code).toBe('VALIDATION_ERROR');
+          }
         }
       });
 
@@ -81,8 +85,10 @@ describe('Validation Utilities', () => {
           fail('Expected validation to throw');
         } catch (error) {
           expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request params must be an object');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
+          if (error instanceof ValidationError) {
+            expect(error.message).toBe('Request params must be an object');
+            expect(error.code).toBe('VALIDATION_ERROR');
+          }
         }
       });
 
@@ -96,8 +102,10 @@ describe('Validation Utilities', () => {
           fail('Expected validation to throw');
         } catch (error) {
           expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request params must contain uri');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
+          if (error instanceof ValidationError) {
+            expect(error.message).toBe('Request params must contain uri');
+            expect(error.code).toBe('VALIDATION_ERROR');
+          }
         }
       });
 
@@ -113,43 +121,67 @@ describe('Validation Utilities', () => {
           fail('Expected validation to throw');
         } catch (error) {
           expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request uri must be a string');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
+          if (error instanceof ValidationError) {
+            expect(error.message).toBe('Request uri must be a string');
+            expect(error.code).toBe('VALIDATION_ERROR');
+          }
         }
       });
 
-      it('should reject params with empty uri', () => {
-        const request = {
-          params: {
-            uri: '',
-          },
-        };
+      describe('uri format validation', () => {
+        const invalidUris = [
+          ['empty string', ''],
+          ['whitespace only', '   '],
+          ['spaces in middle', 'resource:///block/123 456'],
+          ['spaces at start', ' resource:///block/123'],
+          ['spaces at end', 'resource:///block/123 '],
+          ['special characters', 'resource:///block/123@#$'],
+          ['unicode characters', 'resource:///block/123🚀'],
+          ['very long id', `resource:///block/${'a'.repeat(129)}`],
+          ['backslashes', 'resource:\\\\block\\123'],
+          ['missing protocol', '///block/123'],
+          ['wrong protocol', 'https:///block/123'],
+          ['missing slashes', 'resource:/block/123'],
+          ['extra slashes', 'resource:////block/123'],
+          ['missing type', 'resource:///'],
+          ['missing id', 'resource:///block'],
+          ['trailing slash', 'resource:///block/123/'],
+          ['query parameters', 'resource:///block/123?param=value'],
+          ['fragment identifier', 'resource:///block/123#fragment'],
+          ['encoded characters', 'resource:///block/123%20abc'],
+        ] as const;
 
-        try {
-          validateResourceCallRequest(request);
-          fail('Expected validation to throw');
-        } catch (error) {
-          expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request uri cannot be empty');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
-        }
-      });
+        test.each(invalidUris)('should reject uri with %s', (_, uri) => {
+          const request = {
+            params: { uri },
+          };
 
-      it('should reject params with whitespace-only uri', () => {
-        const request = {
-          params: {
-            uri: '   ',
-          },
-        };
+          try {
+            validateResourceCallRequest(request);
+            fail('Expected validation to throw');
+          } catch (error) {
+            expect(error).toBeInstanceOf(ValidationError);
+            if (error instanceof ValidationError) {
+              expect(error.code).toBe('VALIDATION_ERROR');
+              // Check that error message is descriptive
+              expect(error.message).toMatch(/^Request uri (must be a string|cannot be empty|has invalid format)$/);
+            }
+          }
+        });
 
-        try {
-          validateResourceCallRequest(request);
-          fail('Expected validation to throw');
-        } catch (error) {
-          expect(error).toBeInstanceOf(ValidationError);
-          expect(error).toHaveProperty('message', 'Request uri cannot be empty');
-          expect(error).toHaveProperty('code', 'VALIDATION_ERROR');
-        }
+        it('should validate uri length limits', () => {
+          // Test maximum valid length
+          const maxValidUri = `resource:///block/${'a'.repeat(128)}`;
+          expect(() => validateResourceCallRequest({
+            params: { uri: maxValidUri }
+          })).not.toThrow();
+
+          // Test exceeding maximum length
+          const tooLongUri = `resource:///block/${'a'.repeat(129)}`;
+          expect(() => validateResourceCallRequest({
+            params: { uri: tooLongUri }
+          })).toThrow(ValidationError);
+        });
       });
     });
   });

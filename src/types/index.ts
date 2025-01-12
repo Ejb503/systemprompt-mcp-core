@@ -93,3 +93,16 @@ export interface BlockCreationResult {
   };
   _link: string;
 }
+
+/**
+ * Interface for resource call requests
+ */
+export interface ResourceCallRequest {
+  method: "resources/read";
+  params: {
+    uri: string;
+    _meta?: {
+      progressToken?: string | number;
+    };
+  };
+}
