@@ -44,12 +44,22 @@ export class ApplicationError extends Error {
  * Error thrown when service operations fail
  */
 export class ServiceError extends ApplicationError {
-  constructor(message: string, operation: string) {
+  readonly cause?: Error;
+
+  constructor(message: string, operation: string, originalError?: Error) {
     super(
       `Operation failed: ${operation}. ${message}`,
       'SERVICE_ERROR',
       'ServiceError'
     );
+    this.cause = originalError;
+  }
+
+  /**
+   * Gets the original error that caused this service error
+   */
+  getCause(): Error | undefined {
+    return this.cause;
   }
 }
 
@@ -83,11 +93,11 @@ export class ParseError extends ApplicationError {
  * Handles errors from service operations by wrapping them in a standardized format
  * @param error The caught error
  * @param context Description of what operation failed
- * @throws ServiceError with standardized message format
+ * @throws ServiceError with standardized message format and original error
  */
 export const handleServiceError = (error: unknown, context: string): never => {
   const message = error instanceof Error ? error.message : "Unknown error";
-  throw new ServiceError(message, context);
+  throw new ServiceError(message, context, error instanceof Error ? error : undefined);
 };
 
 /**
@@ -97,8 +107,8 @@ export const handleServiceError = (error: unknown, context: string): never => {
  * @throws ApiError with the API error message or default message
  */
 export const handleApiError = (
-  response: { message?: string },
+  response: { message?: string; error?: string },
   defaultMessage: string = "API request failed"
 ): never => {
-  throw new ApiError(response.message || defaultMessage);
+  throw new ApiError(response.message || response.error || defaultMessage);
 }; 
