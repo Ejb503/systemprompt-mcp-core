@@ -163,6 +163,9 @@ export class ParseError extends ApplicationError {
  */
 export const handleServiceError = (error: unknown, context: string): never => {
   const message = error instanceof Error ? error.message : "Unknown error";
+  if (error instanceof ServiceError) {
+    throw error;
+  }
   throw new ServiceError(message, context, error instanceof Error ? error : undefined);
 };
 

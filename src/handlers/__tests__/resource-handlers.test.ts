@@ -3,7 +3,7 @@ import { BlockService } from "@/services/block-service.js";
 import * as resourceHandlers from "../resource-handlers.js";
 import { ResourceUriError } from "@/utils/uri-parser.js";
 import { ServiceError, ApiError } from "@/utils/error-handling.js";
-import type { Block, BlockCreationResult } from "@/types/index.js";
+import type { Block } from "@/types/index.js";
 
 // Mock the BlockService module
 jest.mock("@/services/block-service.js");
@@ -17,11 +17,6 @@ describe("Resource Handlers", () => {
     mockService = new MockedBlockService("test-api-key") as jest.Mocked<BlockService>;
     mockService.listBlocks = jest.fn();
     mockService.getBlock = jest.fn();
-    // Replace the blockService in the module
-    Object.defineProperty(resourceHandlers, 'blockService', {
-      value: mockService,
-      writable: true
-    });
   });
 
   describe("handleListResources", () => {
@@ -47,7 +42,10 @@ describe("Resource Handlers", () => {
       mockService.listBlocks.mockResolvedValue(mockBlocks);
 
       // Execute
-      const result = await resourceHandlers.handleListResources({ method: "resources/list" });
+      const result = await resourceHandlers.handleListResources(
+        { method: "resources/list" },
+        mockService
+      );
 
       // Verify
       expect(result).toEqual({
@@ -77,7 +75,10 @@ describe("Resource Handlers", () => {
       mockService.listBlocks.mockResolvedValue([]);
 
       // Execute
-      const result = await resourceHandlers.handleListResources({ method: "resources/list" });
+      const result = await resourceHandlers.handleListResources(
+        { method: "resources/list" },
+        mockService
+      );
 
       // Verify
       expect(result.resources).toEqual([]);
@@ -88,7 +89,10 @@ describe("Resource Handlers", () => {
       mockService.listBlocks.mockRejectedValue(new ApiError("API request failed: Invalid request"));
 
       // Execute & Verify
-      await expect(resourceHandlers.handleListResources({ method: "resources/list" })).rejects.toThrow("API request failed: Invalid request");
+      await expect(resourceHandlers.handleListResources(
+        { method: "resources/list" },
+        mockService
+      )).rejects.toThrow("API request failed: Invalid request");
     });
 
     it("should handle service errors with cause", async () => {
@@ -96,11 +100,14 @@ describe("Resource Handlers", () => {
       mockService.listBlocks.mockRejectedValue(new ServiceError('Network request failed', 'fetch blocks', originalError));
 
       try {
-        await resourceHandlers.handleListResources({ method: "resources/list" });
+        await resourceHandlers.handleListResources(
+          { method: "resources/list" },
+          mockService
+        );
         fail('Expected error to be thrown');
       } catch (error) {
         if (error instanceof ServiceError) {
-          expect(error.message).toBe("Operation failed: fetch blocks. Operation failed: fetch blocks. Network request failed");
+          expect(error.message).toBe("Operation failed: fetch blocks. Network request failed");
           expect(error.getCause()).toBe(originalError);
         } else {
           throw new Error('Expected ServiceError');
@@ -127,7 +134,8 @@ describe("Resource Handlers", () => {
         {
           method: "resources/read",
           params: { uri: "resource:///block/block1" }
-        }
+        },
+        mockService
       );
 
       // Verify
@@ -145,10 +153,13 @@ describe("Resource Handlers", () => {
     it("should throw error for invalid URI format", async () => {
       // Execute & Verify
       await expect(
-        resourceHandlers.handleResourceCall({
-          method: "resources/read",
-          params: { uri: "invalid-uri" }
-        })
+        resourceHandlers.handleResourceCall(
+          {
+            method: "resources/read",
+            params: { uri: "invalid-uri" }
+          },
+          mockService
+        )
       ).rejects.toThrow(ResourceUriError);
     });
 
@@ -158,10 +169,13 @@ describe("Resource Handlers", () => {
 
       // Execute & Verify
       await expect(
-        resourceHandlers.handleResourceCall({
-          method: "resources/read",
-          params: { uri: "resource:///block/block1" }
-        })
+        resourceHandlers.handleResourceCall(
+          {
+            method: "resources/read",
+            params: { uri: "resource:///block/block1" }
+          },
+          mockService
+        )
       ).rejects.toThrow("API request failed: Block not found");
     });
 
@@ -171,10 +185,13 @@ describe("Resource Handlers", () => {
 
       // Execute & Verify
       await expect(
-        resourceHandlers.handleResourceCall({
-          method: "resources/read",
-          params: { uri: "resource:///block/block1" }
-        })
+        resourceHandlers.handleResourceCall(
+          {
+            method: "resources/read",
+            params: { uri: "resource:///block/block1" }
+          },
+          mockService
+        )
       ).rejects.toThrow("Operation failed: fetch block content. Unknown error");
     });
   });

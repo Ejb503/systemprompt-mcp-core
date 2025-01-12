@@ -2,10 +2,15 @@ import { BlockService } from "../services/block-service.js";
 import { parseResourceUri } from "../utils/uri-parser.js";
 import { handleServiceError, ApiError } from "../utils/error-handling.js";
 
-export const blockService = new BlockService(process.env.API_KEY || '');
+if (!process.env.API_KEY) {
+  throw new Error("API_KEY environment variable is required");
+}
+
+const defaultBlockService = new BlockService(process.env.API_KEY);
 
 export async function handleListResources(
-  request: { method: "resources/list"; params?: { _meta?: { progressToken?: string | number } } }
+  request: { method: "resources/list"; params?: { _meta?: { progressToken?: string | number } } },
+  blockService: BlockService = defaultBlockService
 ) {
   try {
     const blocks = await blockService.listBlocks();
@@ -28,7 +33,8 @@ export async function handleListResources(
 }
 
 export async function handleResourceCall(
-  request: { method: "resources/read"; params: { uri: string; _meta?: { progressToken?: string | number } } }
+  request: { method: "resources/read"; params: { uri: string; _meta?: { progressToken?: string | number } } },
+  blockService: BlockService = defaultBlockService
 ) {
   const { uri } = request.params;
   const { id } = parseResourceUri(uri);
