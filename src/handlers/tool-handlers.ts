@@ -1,4 +1,5 @@
-import { SystemPromptService } from "../services/systemprompt-service.js";
+import { BlockService } from "../services/block-service.js";
+import { PromptService } from "../services/prompt-service.js";
 import {
   CreatePromptInput,
   CreateBlockInput,
@@ -7,7 +8,9 @@ import {
   Tool,
 } from "../types/index.js";
 
-const systemPromptService = new SystemPromptService();
+const API_KEY = process.env.API_KEY || '';
+const promptService = new PromptService(API_KEY);
+const blockService = new BlockService(API_KEY);
 
 export function handleListTools(): { tools: Tool[] } {
   return {
@@ -304,7 +307,7 @@ export async function handleToolCall(request: {
   switch (request.params.name) {
     case "create_prompt": {
       const promptData = request.params.arguments as CreatePromptInput;
-      const result = await systemPromptService.createPrompt(promptData);
+      const result = await promptService.createPrompt(promptData);
       return {
         content: [
           {
@@ -319,9 +322,8 @@ export async function handleToolCall(request: {
     }
 
     case "edit_prompt": {
-      const { uuid, ...promptData } = request.params
-        .arguments as EditPromptInput;
-      const result = await systemPromptService.editPrompt(uuid, promptData);
+      const editPromptData = request.params.arguments as EditPromptInput;
+      const result = await promptService.editPrompt(editPromptData.uuid, editPromptData);
       return {
         content: [
           {
@@ -337,7 +339,7 @@ export async function handleToolCall(request: {
 
     case "create_block": {
       const blockData = request.params.arguments as CreateBlockInput;
-      const result = await systemPromptService.createBlock(blockData);
+      const result = await blockService.createBlock(blockData);
       return {
         content: [
           {
@@ -352,8 +354,8 @@ export async function handleToolCall(request: {
     }
 
     case "edit_block": {
-      const { uuid, ...blockData } = request.params.arguments as EditBlockInput;
-      const result = await systemPromptService.editBlock(uuid, blockData);
+      const editBlockData = request.params.arguments as EditBlockInput;
+      const result = await blockService.editBlock(editBlockData.uuid, editBlockData);
       return {
         content: [
           {

@@ -47,7 +47,7 @@ export async function handleGetPrompt(request: { params: { name: string } }, ser
   const prompt = prompts.find((p: PromptCreationResult) => p.metadata.title === name);
 
   if (!prompt) {
-    throw new ServiceError("Unknown prompt", "fetch prompt");
+    throw new ServiceError("Prompt not found", "fetch prompt", new Error(`No prompt found with name: ${name}`));
   }
 
   return {
@@ -87,7 +87,7 @@ export async function handleGetPrompt(request: { params: { name: string } }, ser
 
 export async function createPromptHandler(service: PromptService, input: CreatePromptInput) {
   if (!input.instruction) {
-    throw new ServiceError("Invalid input", "create prompt");
+    throw new ServiceError("Missing required field: instruction", "create prompt", new Error("Invalid input: instruction field is required"));
   }
 
   return await service.createPrompt(input);
@@ -95,7 +95,7 @@ export async function createPromptHandler(service: PromptService, input: CreateP
 
 export async function editPromptHandler(service: PromptService, promptId: string, input: Partial<CreatePromptInput>) {
   if (!promptId) {
-    throw new ServiceError("Invalid UUID", "edit prompt");
+    throw new ServiceError("Missing required field: promptId", "edit prompt", new Error("Invalid UUID: promptId is required"));
   }
 
   const editInput: EditPromptInput = {

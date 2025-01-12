@@ -6,6 +6,7 @@ import {
   createPromptHandler,
   editPromptHandler,
 } from "../prompt-handlers.js";
+import { ServiceError } from "@/utils/error-handling.js";
 
 // Import the service before mocking to get its type information
 import { PromptService } from "@/services/prompt-service.js";
@@ -50,7 +51,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Create a new mocked instance before each test
   const MockedPromptService = jest.mocked(PromptService);
-  service = new MockedPromptService() as jest.Mocked<PromptService>;
+  service = new MockedPromptService("test-api-key") as jest.Mocked<PromptService>;
   
   // Setup default mock implementations
   service.getAllPrompts = jest.fn();
@@ -144,7 +145,14 @@ describe("Prompt Handlers", () => {
 
       // Execute & Verify
       await expect(handleGetPrompt(request, service))
-        .rejects.toThrow("Unknown prompt");
+        .rejects.toThrow("Prompt not found");
+      
+      try {
+        await handleGetPrompt(request, service);
+      } catch (error) {
+        expect(error instanceof ServiceError).toBe(true);
+        expect((error as ServiceError).getCause()?.message).toBe("No prompt found with name: Non-existent Prompt");
+      }
     });
   });
 
@@ -197,7 +205,14 @@ describe("Prompt Handlers", () => {
 
       // Execute & Verify
       await expect(createPromptHandler(service, invalidInput))
-        .rejects.toThrow("Invalid input");
+        .rejects.toThrow("Missing required field: instruction");
+      
+      try {
+        await createPromptHandler(service, invalidInput);
+      } catch (error) {
+        expect(error instanceof ServiceError).toBe(true);
+        expect((error as ServiceError).getCause()?.message).toBe("Invalid input: instruction field is required");
+      }
     });
   });
 
@@ -215,6 +230,10 @@ describe("Prompt Handlers", () => {
     it("should update prompt with valid changes", async () => {
       // Setup
       const promptId = "test-id";
+      const expectedEditInput = {
+        uuid: promptId,
+        ...editInput
+      };
       service.editPrompt.mockResolvedValue({
         ...testPrompt,
         instruction: editInput.instruction!,
@@ -225,7 +244,7 @@ describe("Prompt Handlers", () => {
       const result = await editPromptHandler(service, promptId, editInput);
 
       // Verify
-      expect(service.editPrompt).toHaveBeenCalledWith(promptId, editInput);
+      expect(service.editPrompt).toHaveBeenCalledWith(promptId, expectedEditInput);
       expect(result.instruction).toEqual(editInput.instruction);
       expect(result.metadata.title).toBe(editInput.metadata!.title);
     });
@@ -233,7 +252,14 @@ describe("Prompt Handlers", () => {
     it("should validate prompt ID", async () => {
       // Execute & Verify
       await expect(editPromptHandler(service, "", editInput))
-        .rejects.toThrow("Invalid UUID");
+        .rejects.toThrow("Missing required field: promptId");
+      
+      try {
+        await editPromptHandler(service, "", editInput);
+      } catch (error) {
+        expect(error instanceof ServiceError).toBe(true);
+        expect((error as ServiceError).getCause()?.message).toBe("Invalid UUID: promptId is required");
+      }
     });
 
     it("should handle empty update data", async () => {
