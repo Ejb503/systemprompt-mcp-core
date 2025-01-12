@@ -31,13 +31,13 @@ export class ValidationError extends ApplicationError {
  * 
  * @example
  * ```ts
- * if (isObject(request)) {
+ * if (isNonNullObject(request)) {
  *   // request is now typed as Record<string, unknown>
  *   const params = request.params;
  * }
  * ```
  */
-function isObject(value: unknown): value is Record<string, unknown> {
+function isNonNullObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -75,7 +75,7 @@ function hasProperty<K extends string>(obj: object, prop: K): obj is { [P in K]:
  * ```
  */
 export function validateObject(value: unknown, objectName: string): asserts value is Record<string, unknown> {
-  if (!isObject(value)) {
+  if (!isNonNullObject(value)) {
     throw new ValidationError(`${objectName} must be an object`);
   }
 }
