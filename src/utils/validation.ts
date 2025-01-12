@@ -74,7 +74,7 @@ function hasProperty<K extends string>(obj: object, prop: K): obj is { [P in K]:
  * // request is now typed as Record<string, unknown>
  * ```
  */
-function validateObject(value: unknown, objectName: string): asserts value is Record<string, unknown> {
+export function validateObject(value: unknown, objectName: string): asserts value is Record<string, unknown> {
   if (!isObject(value)) {
     throw new ValidationError(`${objectName} must be an object`);
   }
@@ -95,7 +95,7 @@ function validateObject(value: unknown, objectName: string): asserts value is Re
  * // request.params is now typed as unknown
  * ```
  */
-function validateObjectProperty<K extends string>(
+export function validateObjectProperty<K extends string>(
   obj: Record<string, unknown>,
   prop: K,
   objectName: string
@@ -106,26 +106,64 @@ function validateObjectProperty<K extends string>(
 }
 
 /**
- * Validates that a value is a non-empty string.
- * Trims the string before checking length to ensure it's not just whitespace.
+ * Type guard to check if a value is a non-empty string.
+ * A string is considered non-empty if it contains at least one non-whitespace character.
+ * Zero-width spaces and other invisible characters are considered whitespace.
  * 
- * @param value - The value to validate
- * @param fieldName - The name of the field being validated (used in error messages)
- * @throws {ValidationError} If the value is not a string or is empty after trimming
+ * @param value - The value to check, type: unknown
+ * @returns {boolean} True if the value is a non-empty string, false otherwise
  * 
  * @example
  * ```ts
- * // Throws if uri is not a string or is empty
- * validateNonEmptyString(params.uri, 'Request uri');
- * // uri is now typed as string
+ * if (isNonEmptyString(value)) {
+ *   // value is now typed as string and guaranteed to be non-empty
+ *   const length = value.length;
+ * }
  * ```
  */
-function validateNonEmptyString(value: unknown, fieldName: string): asserts value is string {
+export function isNonEmptyString(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  // Remove zero-width spaces and other invisible characters before checking length
+  const cleaned = value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  return cleaned.length > 0;
+}
+
+/**
+ * Validates that a value is a non-empty string.
+ * A string is considered non-empty if it contains at least one non-whitespace character.
+ * Zero-width spaces and other invisible characters are considered whitespace.
+ * 
+ * @param value - The value to validate, type: unknown
+ * @param fieldName - The name of the field being validated (used in error messages), type: string
+ * @throws {ValidationError} If the value is not a string or is empty after trimming
+ * @returns {asserts value is string} Type assertion that value is a non-empty string
+ * 
+ * @example
+ * ```ts
+ * // These will pass validation:
+ * validateNonEmptyString('hello', 'greeting');
+ * validateNonEmptyString('  hello  ', 'greeting'); // trimmed before checking
+ * validateNonEmptyString('123', 'number');
+ * validateNonEmptyString('!@#', 'special');
+ * 
+ * // These will throw ValidationError:
+ * validateNonEmptyString('', 'empty');         // empty string
+ * validateNonEmptyString('   ', 'whitespace'); // only whitespace
+ * validateNonEmptyString(null, 'null');        // not a string
+ * validateNonEmptyString(undefined, 'undef');  // not a string
+ * validateNonEmptyString(123, 'number');       // not a string
+ * ```
+ */
+export function validateNonEmptyString(value: unknown, fieldName: string): asserts value is string {
   if (typeof value !== 'string') {
     throw new ValidationError(`${fieldName} must be a string`);
   }
-  if (value.trim().length === 0) {
-    throw new ValidationError(`${fieldName} cannot be empty`);
+  // Remove zero-width spaces and other invisible characters before checking length
+  const cleaned = value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if (cleaned.length === 0) {
+    throw new ValidationError(`${fieldName} cannot be empty or contain only whitespace`);
   }
 }
 
@@ -187,23 +225,4 @@ export function validateResourceCallRequest(request: unknown): asserts request i
     }
     throw error;
   }
-}
-
-/**
- * Type guard for checking if a value is a non-empty string.
- * Unlike validateNonEmptyString, this function returns a boolean instead of throwing.
- * 
- * @param value - The value to check
- * @returns True if the value is a non-empty string after trimming, false otherwise
- * 
- * @example
- * ```ts
- * if (isNonEmptyString(params.uri)) {
- *   // params.uri is now typed as string
- *   const uri = params.uri;
- * }
- * ```
- */
-export function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
 } 
