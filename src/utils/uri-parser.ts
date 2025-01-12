@@ -1,12 +1,20 @@
 import { ApplicationError, ErrorCode } from './error-handling.js';
+import { validateResourceType, ResourceType, SUPPORTED_RESOURCE_TYPES } from '../config/resource-types.js';
 
 /**
  * Represents a parsed resource URI with its components.
  * Resource URIs follow the format: resource:///{type}/{id}
+ * 
+ * @example
+ * // Valid URI: resource:///block/my-block-123
+ * const parsed: ParsedResourceUri = {
+ *   type: 'block',
+ *   id: 'my-block-123'
+ * };
  */
 export interface ParsedResourceUri {
   /** The type of resource (e.g., 'block') */
-  type: string;
+  type: ResourceType;
   /** The unique identifier of the resource */
   id: string;
 }
@@ -19,61 +27,43 @@ export interface ParsedResourceUri {
  * ^resource:\/\/\/      - Matches the start of string followed by "resource:///"
  * ([a-zA-Z0-9_]+)      - Capture group 1 (type): One or more alphanumeric chars or underscores
  * \/                    - Matches a forward slash
- * ([a-zA-Z0-9\-]+)     - Capture group 2 (id): One or more alphanumeric chars or hyphens
+ * ([^\/\?\#]*)         - Capture group 2 (id): Zero or more chars that aren't /, ?, or #
  * $                     - End of string
- * 
- * - type: alphanumeric characters and underscores
- * - id: alphanumeric characters and hyphens
  */
-const RESOURCE_URI_REGEX = /^resource:\/\/\/([a-zA-Z0-9_]+)\/([a-zA-Z0-9\-]+)$/;
+const RESOURCE_URI_PATTERN = /^resource:\/\/\/([a-zA-Z0-9_]+)\/([^\/\?\#]*)$/;
 
 /**
  * Regular expression for validating resource IDs.
- * - Must contain only alphanumeric characters and hyphens
- * - Length between 1 and 128 characters
+ * 
+ * Pattern requirements:
+ * - Must start with an alphanumeric character
+ * - Can contain hyphens for readability
+ * - Must be between 1 and 128 characters
+ * - Cannot end with a hyphen
+ * - Cannot contain consecutive hyphens
  */
-const RESOURCE_ID_REGEX = /^[a-zA-Z0-9\-]{1,128}$/;
+const RESOURCE_ID_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|(?!--)[-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/;
 
 /**
  * Error thrown when URI parsing or creation fails.
  * This error extends ApplicationError to maintain consistent error handling.
  * 
  * @example
- * ```ts
- * throw new ResourceUriError('Invalid resource ID format', 'INVALID_RESOURCE_ID');
- * ```
+ * try {
+ *   parseResourceUri('invalid://uri');
+ * } catch (error) {
+ *   if (error instanceof ResourceUriError) {
+ *     console.error(error.message); // Provides detailed error information
+ *   }
+ * }
  */
 export class ResourceUriError extends ApplicationError {
   constructor(
     message: string,
-    code: Extract<ErrorCode, 'INVALID_RESOURCE_TYPE' | 'INVALID_RESOURCE_ID'> = 'INVALID_RESOURCE_ID'
+    code: ErrorCode = 'INVALID_RESOURCE_ID'
   ) {
     super(message, code, 'ResourceUriError');
   }
-}
-
-/**
- * Set of valid resource types.
- * Add new resource types here as they are supported.
- */
-const VALID_RESOURCE_TYPES = new Set(['block']);
-
-/**
- * Checks if a resource type is supported.
- * Case-sensitive comparison is used to enforce consistent casing.
- * 
- * @param type - The resource type to validate
- * @returns True if the type is supported, false otherwise
- * 
- * @example
- * ```ts
- * if (isValidResourceType('block')) {
- *   // Handle block resource
- * }
- * ```
- */
-function isValidResourceType(type: string): boolean {
-  return VALID_RESOURCE_TYPES.has(type);
 }
 
 /**
@@ -82,63 +72,60 @@ function isValidResourceType(type: string): boolean {
  * 
  * Validation rules:
  * - Must match the resource URI format exactly
- * - Type must be a supported resource type
- * - ID must be alphanumeric with hyphens, 1-128 chars
+ * - Type must be a supported resource type (currently: ${Array.from(SUPPORTED_RESOURCE_TYPES).join(', ')})
+ * - ID must be alphanumeric with optional hyphens, 1-128 chars
+ * - ID cannot start or end with a hyphen
+ * - ID cannot contain consecutive hyphens
+ * 
+ * @example
+ * // Parse a valid resource URI
+ * const { type, id } = parseResourceUri('resource:///block/my-block-123');
+ * 
+ * // Will throw for invalid URIs
+ * try {
+ *   parseResourceUri('invalid://uri');
+ * } catch (error) {
+ *   // Handle the error
+ * }
  * 
  * @param uri - The resource URI to parse
  * @returns The parsed URI components
  * @throws {ResourceUriError} If the URI format is invalid or contains invalid components
- * 
- * @example
- * ```ts
- * // Valid URI
- * const { type, id } = parseResourceUri('resource:///block/123');
- * // type = 'block', id = '123'
- * 
- * // Invalid URI - throws ResourceUriError
- * parseResourceUri('invalid://uri');
- * ```
  */
 export function parseResourceUri(uri: string): ParsedResourceUri {
+  // Input validation
   if (!uri || typeof uri !== 'string') {
     throw new ResourceUriError(
-      'Resource URI must be a non-empty string',
-      'INVALID_RESOURCE_ID'
+      'Invalid resource URI format'
     );
   }
 
-  const match = uri.match(RESOURCE_URI_REGEX);
-
+  // URI format validation
+  const match = uri.match(RESOURCE_URI_PATTERN);
   if (!match || match.length < 3) {
     throw new ResourceUriError(
-      'Invalid resource URI format - expected "resource:///{type}/{id}" where type contains only alphanumeric characters and underscores, and id contains only alphanumeric characters and hyphens',
-      'INVALID_RESOURCE_ID'
+      'Invalid resource URI format'
     );
   }
 
-  // Destructure the match array:
-  // [0] contains the entire matched string (full URI)
-  // [1] contains the first capture group (type): alphanumeric + underscore
-  // [2] contains the second capture group (id): alphanumeric + hyphen
   const [, type, id] = match;
 
-  // Validate ID format first
-  if (!id || !RESOURCE_ID_REGEX.test(id)) {
-    throw new ResourceUriError(
-      'Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters',
-      'INVALID_RESOURCE_ID'
-    );
-  }
-
-  // Then validate resource type
-  if (!isValidResourceType(type)) {
+  // Resource type validation
+  if (!validateResourceType(type)) {
     throw new ResourceUriError(
       `Unsupported resource type: ${type}`,
       'INVALID_RESOURCE_TYPE'
     );
   }
 
-  return { type, id };
+  // Resource ID validation
+  if (!id || !RESOURCE_ID_PATTERN.test(id) || id.length > 128) {
+    throw new ResourceUriError(
+      'Invalid resource ID format'
+    );
+  }
+
+  return { type: type as ResourceType, id };
 }
 
 /**
@@ -146,50 +133,55 @@ export function parseResourceUri(uri: string): ParsedResourceUri {
  * This is the inverse operation of parseResourceUri.
  * 
  * Validation rules:
- * - Type must be a supported resource type
- * - ID must be alphanumeric with hyphens, 1-128 chars
+ * - Type must be a supported resource type (currently: ${Array.from(SUPPORTED_RESOURCE_TYPES).join(', ')})
+ * - ID must be alphanumeric with optional hyphens, 1-128 chars
+ * - ID cannot start or end with a hyphen
+ * - ID cannot contain consecutive hyphens
+ * 
+ * @example
+ * // Create a valid resource URI
+ * const uri = createResourceUri('block', 'my-block-123');
+ * // Result: 'resource:///block/my-block-123'
+ * 
+ * // Will throw for invalid components
+ * try {
+ *   createResourceUri('invalid-type', '!!!');
+ * } catch (error) {
+ *   // Handle the error
+ * }
  * 
  * @param type - The resource type (e.g., "block")
  * @param id - The resource ID
  * @returns The formatted URI
  * @throws {ResourceUriError} If the components are invalid
- * 
- * @example
- * ```ts
- * // Valid components
- * const uri = createResourceUri('block', '123');
- * // uri = 'resource:///block/123'
- * 
- * // Invalid type - throws ResourceUriError
- * createResourceUri('invalid', '123');
- * ```
  */
-export function createResourceUri(type: string, id: string): string {
+export function createResourceUri(type: ResourceType, id: string): string {
+  // Input validation
   if (!type || typeof type !== 'string') {
     throw new ResourceUriError(
-      'Resource type must be a non-empty string',
+      'Invalid resource type',
       'INVALID_RESOURCE_TYPE'
     );
   }
 
   if (!id || typeof id !== 'string') {
     throw new ResourceUriError(
-      'Resource ID must be a non-empty string',
-      'INVALID_RESOURCE_ID'
+      'Invalid resource ID format'
     );
   }
 
-  if (!isValidResourceType(type)) {
+  // Resource type validation
+  if (!validateResourceType(type)) {
     throw new ResourceUriError(
       `Unsupported resource type: ${type}`,
       'INVALID_RESOURCE_TYPE'
     );
   }
 
-  if (!id || !RESOURCE_ID_REGEX.test(id)) {
+  // Resource ID validation
+  if (!RESOURCE_ID_PATTERN.test(id) || id.length > 128) {
     throw new ResourceUriError(
-      'Invalid resource ID format - ID must contain only alphanumeric characters and hyphens, and be between 1 and 128 characters',
-      'INVALID_RESOURCE_ID'
+      'Invalid resource ID format'
     );
   }
 
