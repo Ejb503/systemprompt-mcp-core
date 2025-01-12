@@ -18,7 +18,7 @@ describe('Validation Utilities', () => {
       expect(isNonEmptyString(value)).toBe(true);
     });
 
-    const invalidValues = [
+    const invalidValues: [string, any][] = [
       ['empty string', ''],
       ['whitespace only', '   '],
       ['tabs only', '\t\t'],
@@ -259,4 +259,4 @@ describe('Validation Utilities', () => {
       });
     });
   });
-}); 
+});

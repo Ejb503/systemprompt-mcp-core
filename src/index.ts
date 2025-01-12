@@ -13,6 +13,10 @@ import {
   handleListResources,
   handleResourceCall,
 } from "./handlers/resource-handlers.js";
+import { BlockService } from "./services/block-service.js";
+
+const API_KEY = process.env.API_KEY || '';
+const blockService = new BlockService(API_KEY);
 
 const server = new Server(
   { name: "systemprompt-agent", version: "1.0.0" },
