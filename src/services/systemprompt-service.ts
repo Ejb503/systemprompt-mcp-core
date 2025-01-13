@@ -118,7 +118,7 @@ export class SystemPromptService {
   async getBlock(blockId: string): Promise<SystempromptBlockResponse> {
     return this.request<SystempromptBlockResponse>(`/block/${blockId}`, "GET");
   }
-
+ 
   async deletePrompt(uuid: string): Promise<void> {
     return this.request<void>(`/prompt/${uuid}`, "DELETE");
   }

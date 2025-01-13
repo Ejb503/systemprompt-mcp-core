@@ -63,29 +63,35 @@ interface FetchResourceArgs {
 const TOOLS: Tool[] = [
   {
     name: "systemprompt_create_prompt",
-    description: "Create a new systemprompt compatible prompt.",
+    description:
+      "Creates a new prompt template with static and dynamic instructions. Supports both message and structured data formats for input/output. Requires title, description, instructions, and type definitions.",
     inputSchema: {
       type: "object" as const,
       properties: {
         title: {
           type: "string" as const,
-          description: "Title of the prompt",
+          description:
+            "PascalCase or camelCase title that uniquely identifies this prompt template. Used for display and reference purposes.",
         },
         description: {
           type: "string" as const,
-          description: "Description of the prompt",
+          description:
+            "Detailed explanation (max 200 chars) of the prompt's purpose, behavior, and expected usage. Should be clear and concise.",
         },
         static_instruction: {
           type: "string" as const,
-          description: "The static instruction template",
+          description:
+            "Core instruction template that remains constant. Defines the base behavior and rules that don't change between invocations.",
         },
         dynamic_instruction: {
           type: "string" as const,
-          description: "The dynamic instruction template",
+          description:
+            "Variable instruction template that can be modified at runtime. Contains placeholders for context-specific information.",
         },
         state: {
           type: "string" as const,
-          description: "The state for the prompt",
+          description:
+            "JSON-serialized configuration state for the prompt. Stores settings and parameters that affect prompt behavior.",
         },
         input_type: {
           type: "array" as const,
@@ -93,6 +99,8 @@ const TOOLS: Tool[] = [
             type: "string" as const,
             enum: ["message", "structured_data"],
           },
+          description:
+            "Array of accepted input formats. 'message' for text, 'structured_data' for JSON. Determines how input is processed.",
         },
         output_type: {
           type: "array" as const,
@@ -100,6 +108,8 @@ const TOOLS: Tool[] = [
             type: "string" as const,
             enum: ["message", "structured_data"],
           },
+          description:
+            "Array of supported output formats. 'message' for text, 'structured_data' for JSON. Defines response structure.",
         },
       },
       required: [
@@ -115,25 +125,30 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_create_resource",
-    description: "Create a new resource block",
+    description:
+      "Creates a new resource block that can be referenced by prompts. Resources are reusable content blocks that can be included in multiple prompts. Requires title, description, content, and unique prefix.",
     inputSchema: {
       type: "object" as const,
       properties: {
         title: {
           type: "string" as const,
-          description: "Title of the resource",
+          description:
+            "PascalCase or camelCase title that uniquely identifies this resource block. Used for display and reference.",
         },
         description: {
           type: "string" as const,
-          description: "Description of the resource",
+          description:
+            "Detailed explanation (max 200 chars) of the resource's purpose and intended usage within prompt templates.",
         },
         content: {
           type: "string" as const,
-          description: "The content of the resource",
+          description:
+            "The actual content of the resource block. Can contain text, templates, or structured data to be included in prompts.",
         },
         prefix: {
           type: "string" as const,
-          description: "The prefix for the resource",
+          description:
+            "Unique alphanumeric identifier (no spaces/special chars) used to reference this resource within prompt templates.",
         },
       },
       required: ["title", "description", "content", "prefix"],
@@ -141,33 +156,40 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_edit_prompt",
-    description: "Edit an existing prompt",
+    description:
+      "Modifies an existing prompt template by UUID. Supports partial updates to title, description, instructions, state, and input/output types. Only specified fields will be updated.",
     inputSchema: {
       type: "object" as const,
       properties: {
         uuid: {
           type: "string" as const,
-          description: "UUID of the prompt to edit",
+          description:
+            "Unique identifier of the prompt template to modify. Must be a valid UUID of an existing prompt.",
         },
         title: {
           type: "string" as const,
-          description: "New title for the prompt",
+          description:
+            "New PascalCase or camelCase title for the prompt template. Optional - only updated if specified.",
         },
         description: {
           type: "string" as const,
-          description: "New description for the prompt",
+          description:
+            "New detailed explanation (max 200 chars) of the prompt's purpose. Optional - only updated if specified.",
         },
         static_instruction: {
           type: "string" as const,
-          description: "New static instruction",
+          description:
+            "New core instruction template. Optional - only updated if specified. Replaces entire static instruction.",
         },
         dynamic_instruction: {
           type: "string" as const,
-          description: "New dynamic instruction",
+          description:
+            "New variable instruction template. Optional - only updated if specified. Replaces entire dynamic instruction.",
         },
         state: {
           type: "string" as const,
-          description: "New state",
+          description:
+            "New JSON-serialized configuration state. Optional - only updated if specified. Replaces entire state object.",
         },
         input_type: {
           type: "array" as const,
@@ -175,6 +197,8 @@ const TOOLS: Tool[] = [
             type: "string" as const,
             enum: ["message", "structured_data"],
           },
+          description:
+            "New array of accepted input formats. Optional - only updated if specified. Replaces entire input type array.",
         },
         output_type: {
           type: "array" as const,
@@ -182,6 +206,8 @@ const TOOLS: Tool[] = [
             type: "string" as const,
             enum: ["message", "structured_data"],
           },
+          description:
+            "New array of supported output formats. Optional - only updated if specified. Replaces entire output type array.",
         },
       },
       required: ["uuid"],
@@ -189,29 +215,35 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_edit_resource",
-    description: "Edit an existing resource",
+    description:
+      "Updates an existing resource block by UUID. Allows modification of title, description, content, and prefix. Supports partial updates where only specified fields are modified.",
     inputSchema: {
       type: "object" as const,
       properties: {
         uuid: {
           type: "string" as const,
-          description: "UUID of the resource to edit",
+          description:
+            "Unique identifier of the resource block to modify. Must be a valid UUID of an existing resource.",
         },
         title: {
           type: "string" as const,
-          description: "New title for the resource",
+          description:
+            "New PascalCase or camelCase title for the resource. Optional - only updated if specified.",
         },
         description: {
           type: "string" as const,
-          description: "New description for the resource",
+          description:
+            "New detailed explanation (max 200 chars) of the resource's purpose. Optional - only updated if specified.",
         },
         content: {
           type: "string" as const,
-          description: "New content for the resource",
+          description:
+            "New content for the resource block. Optional - only updated if specified. Replaces entire content.",
         },
         prefix: {
           type: "string" as const,
-          description: "New prefix for the resource",
+          description:
+            "New unique alphanumeric identifier (no spaces/special chars). Optional - only updated if specified.",
         },
       },
       required: ["uuid"],
@@ -219,13 +251,15 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_delete_prompt",
-    description: "Delete an existing prompt",
+    description:
+      "Permanently removes a prompt template by its UUID. This action cannot be undone and will remove all associated configurations and mappings.",
     inputSchema: {
       type: "object" as const,
       properties: {
         uuid: {
           type: "string" as const,
-          description: "UUID of the prompt to delete",
+          description:
+            "Unique identifier of the prompt template to delete. Must be a valid UUID. Operation cannot be undone.",
         },
       },
       required: ["uuid"],
@@ -233,13 +267,15 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_fetch_resource",
-    description: "Fetch an existing resource",
+    description:
+      "Retrieves the complete content and metadata of a specific resource block by its UUID. Returns the raw content for use in prompt templates.",
     inputSchema: {
       type: "object" as const,
       properties: {
         uuid: {
           type: "string" as const,
-          description: "UUID of the resource to fetch",
+          description:
+            "Unique identifier of the resource block to retrieve. Must be a valid UUID of an existing resource.",
         },
       },
       required: ["uuid"],
@@ -247,13 +283,15 @@ const TOOLS: Tool[] = [
   },
   {
     name: "systemprompt_delete_resource",
-    description: "Delete an existing resource",
+    description:
+      "Permanently removes a resource block by its UUID. This action cannot be undone and will remove the resource from all associated prompts.",
     inputSchema: {
       type: "object" as const,
       properties: {
         uuid: {
           type: "string" as const,
-          description: "UUID of the resource to delete",
+          description:
+            "Unique identifier of the resource block to delete. Must be a valid UUID. Operation cannot be undone.",
         },
       },
       required: ["uuid"],
