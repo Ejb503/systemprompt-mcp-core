@@ -27,6 +27,19 @@ This server is designed to work with the [multimodal-mcp-client](https://github.
 
 ## Features
 
+## 🎥 Demo & Showcase
+
+Watch our video demonstration to see Systemprompt MCP Client in action:
+
+[▶️ Watch Demo Video](https://www.youtube.com/watch?v=n94JtRXXqec)
+
+The demo showcases:
+
+- Voice-controlled AI interactions
+- Multimodal input processing
+- Tool execution and workflow automation
+- Real-time voice synthesis
+
 ### Agent Management
 
 - Create and configure AI agents with specific capabilities
