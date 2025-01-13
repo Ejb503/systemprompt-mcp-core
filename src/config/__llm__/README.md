@@ -19,17 +19,17 @@ The main configuration file that exports:
 
 ```typescript
 {
-  name: string;           // Server name identifier
-  version: string;        // Server version
+  name: string;           // "systemprompt-agent-server"
+  version: string;        // Current server version
   metadata: {
-    name: string;         // Display name
+    name: string;         // "System Prompt Agent Server"
     description: string;  // Server description
-    icon: string;         // UI icon identifier
-    color: string;        // UI theme color
+    icon: string;         // "solar:align-horizontal-center-line-duotone"
+    color: string;        // "primary"
     serverStartTime: number;  // Server start timestamp
-    environment: string;  // Runtime environment
+    environment: string;  // process.env.NODE_ENV
     customData: {
-      serverFeatures: string[];  // Enabled features
+      serverFeatures: string[];  // ["agent", "prompts", "systemprompt"]
     }
   }
 }
@@ -41,11 +41,12 @@ The main configuration file that exports:
 {
   capabilities: {
     resources: {
-    } // Resource handling capabilities
-    tools: {
-    } // Tool handling capabilities
+      listChanged: true,  // Support for resource change notifications
+    },
+    tools: {},           // Tool-specific capabilities
     prompts: {
-    } // Prompt handling capabilities
+      listChanged: true, // Support for prompt change notifications
+    }
   }
 }
 ```
@@ -57,3 +58,25 @@ Import the configuration objects from this directory when setting up the MCP ser
 ```typescript
 import { serverConfig, serverCapabilities } from "./config/server-config.js";
 ```
+
+## Environment Variables
+
+The server uses the following environment variables:
+
+- `NODE_ENV`: Determines the runtime environment (development/production)
+
+## Feature Flags
+
+The server supports the following features through `serverFeatures`:
+
+- `agent`: Agent management capabilities
+- `prompts`: Prompt creation and management
+- `systemprompt`: Integration with systemprompt.io
+
+## Capabilities
+
+The server implements these MCP capabilities:
+
+- **Resources**: Supports change notifications for resource updates
+- **Prompts**: Supports change notifications for prompt updates
+- **Tools**: Extensible tool system (configuration determined at runtime)

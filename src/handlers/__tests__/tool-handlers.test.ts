@@ -8,7 +8,10 @@ import {
 } from "@jest/globals";
 import { handleListTools, handleToolCall } from "../tool-handlers.js";
 import { SystemPromptService } from "../../services/systemprompt-service.js";
-import type { SystempromptPromptResponse } from "../../types/index.js";
+import type {
+  SystempromptPromptResponse,
+  SystempromptBlockResponse,
+} from "../../types/index.js";
 import type {
   CallToolRequest,
   CallToolResult,
@@ -215,6 +218,259 @@ describe("Tool Handlers", () => {
       await expect(handleToolCall(request)).rejects.toThrow(
         "Tool call failed: Service error"
       );
+    });
+
+    it("should handle edit prompt request", async () => {
+      const mockPrompt: SystempromptPromptResponse = {
+        id: "test-uuid",
+        metadata: {
+          title: "Updated Prompt",
+          description: "Updated description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "published",
+          author: "test",
+          log_message: "Updated",
+        },
+        instruction: {
+          static: "Updated instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test_input",
+          description: "Test input description",
+          type: ["message"],
+          schema: {},
+        },
+        output: {
+          name: "test_output",
+          description: "Test output description",
+          type: ["message"],
+          schema: {},
+        },
+        _link: "test-link",
+      };
+
+      mockService.editPrompt.mockResolvedValue(mockPrompt);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_edit_prompt",
+          arguments: {
+            uuid: "test-uuid",
+            title: "Updated Prompt",
+            description: "Updated description",
+            static_instruction: "Updated instruction",
+            input_type: ["message"],
+            output_type: ["message"],
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Updated prompt: Updated Prompt" },
+      ]);
+      expect(mockService.editPrompt).toHaveBeenCalled();
+    });
+
+    it("should handle create resource request", async () => {
+      const mockBlock: SystempromptBlockResponse = {
+        id: "test-block",
+        content: "Test content",
+        prefix: "test",
+        metadata: {
+          title: "Test Block",
+          description: "Test description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "published",
+          author: "test",
+          log_message: "Created",
+        },
+      };
+
+      mockService.createBlock.mockResolvedValue(mockBlock);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_create_resource",
+          arguments: {
+            title: "Test Block",
+            description: "Test block description",
+            content: "Test content",
+            prefix: "test",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Created resource: Test Block" },
+      ]);
+      expect(mockService.createBlock).toHaveBeenCalled();
+    });
+
+    it("should handle edit resource request", async () => {
+      const mockBlock: SystempromptBlockResponse = {
+        id: "test-block",
+        content: "Updated content",
+        prefix: "updated",
+        metadata: {
+          title: "Updated Block",
+          description: "Updated description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "published",
+          author: "test",
+          log_message: "Updated",
+        },
+      };
+
+      mockService.editBlock.mockResolvedValue(mockBlock);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_edit_resource",
+          arguments: {
+            uuid: "test-uuid",
+            title: "Updated Block",
+            description: "Updated description",
+            content: "Updated content",
+            prefix: "updated",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Updated resource: Updated Block" },
+      ]);
+      expect(mockService.editBlock).toHaveBeenCalled();
+    });
+
+    it("should handle fetch resource request", async () => {
+      const mockBlock: SystempromptBlockResponse = {
+        id: "test-block",
+        content: "Test content",
+        prefix: "test",
+        metadata: {
+          title: "Test Block",
+          description: "Test description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "published",
+          author: "test",
+          log_message: "Created",
+        },
+      };
+
+      mockService.getBlock.mockResolvedValue(mockBlock);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_fetch_resource",
+          arguments: {
+            uuid: "test-uuid",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([{ type: "text", text: "Test content" }]);
+      expect(mockService.getBlock).toHaveBeenCalled();
+    });
+
+    it("should handle delete prompt request", async () => {
+      mockService.deletePrompt.mockResolvedValue(undefined);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_delete_prompt",
+          arguments: {
+            uuid: "test-uuid",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Deleted prompt" },
+      ]);
+      expect(mockService.deletePrompt).toHaveBeenCalled();
+    });
+
+    it("should handle delete resource request", async () => {
+      mockService.deleteBlock.mockResolvedValue(undefined);
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_delete_resource",
+          arguments: {
+            uuid: "test-uuid",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Deleted resource" },
+      ]);
+      expect(mockService.deleteBlock).toHaveBeenCalled();
+    });
+
+    it("should handle notification errors gracefully", async () => {
+      const mockBlock: SystempromptBlockResponse = {
+        id: "test-block",
+        content: "Test content",
+        prefix: "test",
+        metadata: {
+          title: "Test Block",
+          description: "Test description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "published",
+          author: "test",
+          log_message: "Created",
+        },
+      };
+
+      mockService.createBlock.mockResolvedValue(mockBlock);
+      const mockError = new Error("Notification error");
+      jest.spyOn(console, "error").mockImplementation(() => {});
+
+      const request: CallToolRequest = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_create_resource",
+          arguments: {
+            title: "Test Block",
+            description: "Test block description",
+            content: "Test content",
+            prefix: "test",
+          },
+        },
+      };
+
+      const result = await handleToolCall(request);
+      expect(result.content).toEqual([
+        { type: "text", text: "Created resource: Test Block" },
+      ]);
+
+      // Trigger the nextTick callback with an error
+      await new Promise(process.nextTick);
     });
   });
 });

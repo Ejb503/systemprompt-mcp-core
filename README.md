@@ -1,10 +1,14 @@
 # systemprompt-agent-server
 
-A specialized Model Context Protocol (MCP) server that integrates with [systemprompt.io](https://systemprompt.io) to provide powerful prompt management capabilities. This server enables
-seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to
-provide a complete voice-powered AI workflow solution.
+[![npm version](https://img.shields.io/npm/v/systemprompt-agent-server.svg)](https://www.npmjs.com/package/systemprompt-agent-server)
+[![smithery badge](https://smithery.ai/badge/systemprompt-agent-server)](https://smithery.ai/server/systemprompt-agent-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Twitter Follow](https://img.shields.io/twitter/follow/_tyingshoelaces?style=social)](https://twitter.com/_tyingshoelaces)
+[![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=discord)](https://discord.com/invite/wkAbSuPWpr)
 
-A specialized Model Context Protocol (MCP) server that enables you to create, manage, and extend AI agents through a powerful prompt and tool management system. This server works as the backend for creating sophisticated AI workflows by managing system prompts, tools, and agent configurations.
+[Website](https://systemprompt.io) | [Documentation](https://systemprompt.io/documentation) | [Blog](https://tyingshoelaces.com) | [Get API Key](https://systemprompt.io/console)
+
+A specialized Model Context Protocol (MCP) server that enables you to create, manage, and extend AI agents through a powerful prompt and tool management system. This server integrates with [systemprompt.io](https://systemprompt.io) to provide seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to provide a complete voice-powered AI workflow solution.
 
 An API KEY is required to use this server. You can get one [here](https://systemprompt.io/console).
 
@@ -35,12 +39,12 @@ This server is designed to work with the [multimodal-mcp-client](https://github.
 - Extend agent capabilities with custom tools
 - Built-in tools include:
 
-  - `create_prompt` - Create and manage text notes
-  - `edit_prompt` - Handle system prompt versionin
-  - `create_resource` - Update agent settings
-  - `edit_resource` - Update agent settings
-  - `list_resources` - Update agent settings
-  - `read_resource` - Update agent settings
+  - `create_prompt` - Create new system prompts with metadata
+  - `edit_prompt` - Update existing system prompts with versioning
+  - `create_resource` - Create new agent resources and configurations
+  - `edit_resource` - Modify existing agent resources
+  - `list_resources` - Browse available agent resources
+  - `read_resource` - Access specific agent resource content
 
 - Add your own tools through the MCP interface
 
@@ -72,7 +76,17 @@ npm run watch
 
 ## Installation
 
-To use with Claude Desktop, add the server config:
+### Installing via Smithery
+
+To install SystemPrompt Agent for Claude Desktop automatically via [Smithery](https://smithery.ai/server/systemprompt-agent-server):
+
+```bash
+npx -y @smithery/cli install systemprompt-agent-server --client claude
+```
+
+### Manual Installation
+
+To manually configure with Claude Desktop, add the server config:
 
 On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 On Windows: `%APPDATA%/Claude/claude_desktop_config.json`

@@ -2,70 +2,141 @@
 
 ## Overview
 
-This directory contains service implementations that handle external integrations and business logic for the MCP server.
+This directory contains service implementations that handle external integrations and business logic for the MCP server, primarily focusing on interactions with the systemprompt.io API.
 
 ## Service Files
 
 ### `systemprompt-service.ts`
 
-Service for interacting with the systemprompt.io API:
+A singleton service for interacting with the systemprompt.io API:
 
 ```typescript
 class SystemPromptService {
-  constructor(apiBaseUrl: string = "https://systemprompt.io/api");
-  async createPrompt(input: CreatePromptInput): Promise<PromptCreationResult>;
-  async getPrompt(promptId: string): Promise<string>;
+  private static instance: SystemPromptService | null = null;
+
+  static initialize(apiKey: string, baseUrl?: string): void;
+  static getInstance(): SystemPromptService;
+
+  // Prompt Operations
+  async getAllPrompts(): Promise<SystempromptPromptResponse[]>;
+  async createPrompt(
+    data: SystempromptPromptRequest
+  ): Promise<SystempromptPromptResponse>;
+  async editPrompt(
+    uuid: string,
+    data: Partial<SystempromptPromptRequest>
+  ): Promise<SystempromptPromptResponse>;
+  async deletePrompt(uuid: string): Promise<void>;
+
+  // Block Operations
+  async listBlocks(): Promise<SystempromptBlockResponse[]>;
+  async getBlock(blockId: string): Promise<SystempromptBlockResponse>;
+  async createBlock(
+    data: SystempromptBlockRequest
+  ): Promise<SystempromptBlockResponse>;
+  async editBlock(
+    uuid: string,
+    data: Partial<SystempromptBlockRequest>
+  ): Promise<SystempromptBlockResponse>;
+  async deleteBlock(uuid: string): Promise<void>;
 }
 ```
 
 #### Features
 
-- Creates new systemprompt compatible prompts
-- Retrieves existing prompts by ID
-- Handles API communication and error cases
-- Provides type-safe interfaces
+- Singleton pattern with API key initialization
+- Full CRUD operations for prompts and blocks
+- Type-safe request/response handling
+- Comprehensive error handling
+- Configurable API endpoint
 
-### `docs-service.ts`
+## Implementation Details
 
-Service for managing documentation resources:
+### Initialization
 
-- Handles resource retrieval and management
-- Provides access to Swagger and API documentation
-- Manages agent documentation
+```typescript
+// Initialize with API key
+SystemPromptService.initialize("your-api-key");
 
-## Implementation Standards
+// Get instance for use
+const service = SystemPromptService.getInstance();
+```
 
 ### API Integration
 
 - RESTful API communication using `fetch`
+- Base URL: `https://api.systemprompt.io/v1`
+- Authentication via API key header
 - JSON request/response handling
-- Proper error handling and status checks
-- Configurable API base URL
+- Proper error status handling
 
 ### Error Handling
 
+The service implements comprehensive error handling:
+
 ```typescript
 try {
-  // API calls with proper error handling
+  const response = await fetch(endpoint, options);
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error("Invalid API key");
+    }
+    throw new Error(responseData.message || "API request failed");
+  }
 } catch (error) {
-  throw new Error(
-    `Error message: ${error instanceof Error ? error.message : "Unknown error"}`
-  );
+  // Proper error propagation with context
+  throw new Error(`API request failed: ${error.message}`);
 }
 ```
 
 ### Type Safety
 
-- All service methods are properly typed
-- Input/output interfaces are defined in `types/`
-- Error types are properly handled
+- All operations use TypeScript interfaces
+- Request/response types defined in `types/index.ts`
+- Strict null checks and error handling
+- Type-safe partial updates
 
-## Usage Example
+## Usage Examples
+
+### Managing Prompts
 
 ```typescript
-const service = new SystemPromptService();
-const result = await service.createPrompt({
-  title: "Example Prompt",
-  description: "A sample prompt",
+const service = SystemPromptService.getInstance();
+
+// Create a prompt
+const prompt = await service.createPrompt({
+  metadata: {
+    title: "Example Prompt",
+    description: "A sample prompt",
+  },
+  instruction: {
+    static: "Static instruction",
+    dynamic: "Dynamic part",
+    state: "",
+  },
 });
+
+// Edit a prompt
+await service.editPrompt(prompt.id, {
+  metadata: {
+    title: "Updated Title",
+  },
+});
+```
+
+### Managing Blocks
+
+```typescript
+// Create a block
+const block = await service.createBlock({
+  content: "Block content",
+  prefix: "test",
+  metadata: {
+    title: "Example Block",
+    description: "A sample block",
+  },
+});
+
+// List all blocks
+const blocks = await service.listBlocks();
 ```
