@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.12] - 2025-01-13
+
+### Changed
+
+- Enhanced README with badges, links, and improved documentation structure
+- Improved configuration documentation with detailed environment variables and feature flags
+- Updated service documentation with comprehensive API integration details
+- Enhanced handlers documentation with detailed implementation examples
+
 ## [1.0.11] - 2025-01-13
 
 ### Changed
