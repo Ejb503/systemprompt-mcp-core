@@ -1,36 +1,62 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
-import { handleListTools, handleToolCall } from "../tool-handlers";
-import { SystemPromptService } from "../../services/systemprompt-service";
-import type { SystempromptPromptResponse } from "../../types/index";
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
+import { handleListTools, handleToolCall } from "../tool-handlers.js";
+import { SystemPromptService } from "../../services/systemprompt-service.js";
+import type { SystempromptPromptResponse } from "../../types/index.js";
+import type {
+  CallToolRequest,
+  CallToolResult,
+} from "@modelcontextprotocol/sdk/types.js";
 
-// Manually mock the SDK modules
-const mockServer = {
-  start: jest.fn(),
-  stop: jest.fn(),
-  onRequest: jest.fn(),
-  registerHandler: jest.fn(),
-  registerHandlers: jest.fn(),
-};
+// Mock process.exit
+const mockExit = jest
+  .spyOn(process, "exit")
+  .mockImplementation(() => undefined as never);
 
-const mockTransport = {
-  start: jest.fn(),
-  stop: jest.fn(),
-  onRequest: jest.fn(),
-};
-
+// Mock the SDK modules
 jest.mock("@modelcontextprotocol/sdk/server/stdio.js", () => ({
   __esModule: true,
-  StdioServerTransport: jest.fn(() => mockTransport),
+  StdioServerTransport: jest.fn(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+    onRequest: jest.fn(),
+  })),
 }));
 
 jest.mock("@modelcontextprotocol/sdk/server/index.js", () => ({
   __esModule: true,
-  Server: jest.fn(() => mockServer),
+  Server: jest.fn(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+    onRequest: jest.fn(),
+    registerHandler: jest.fn(),
+    registerHandlers: jest.fn(),
+  })),
+}));
+
+jest.mock("@modelcontextprotocol/sdk/types.js", () => ({
+  __esModule: true,
+  ListToolsRequest: jest.fn(),
+  CallToolRequest: jest.fn(),
+}));
+
+// Mock the index module
+jest.mock("../../index.js", () => ({
+  __esModule: true,
+  server: {
+    notification: jest.fn(),
+  },
 }));
 
 // Mock the SystemPromptService class
 const mockGetInstance = jest.fn();
-jest.mock("../../services/systemprompt-service", () => ({
+jest.mock("../../services/systemprompt-service.js", () => ({
   SystemPromptService: {
     getInstance: () => mockGetInstance(),
     initialize: jest.fn(),
@@ -55,6 +81,10 @@ describe("Tool Handlers", () => {
       request: jest.fn(),
     } as any;
     mockGetInstance.mockReturnValue(mockService);
+  });
+
+  afterEach(() => {
+    mockExit.mockClear();
   });
 
   describe("handleListTools", () => {
@@ -124,7 +154,7 @@ describe("Tool Handlers", () => {
 
       mockService.createPrompt.mockResolvedValue(mockPrompt);
 
-      const request = {
+      const request: CallToolRequest = {
         method: "tools/call" as const,
         params: {
           name: "systemprompt_create_prompt",
@@ -150,7 +180,7 @@ describe("Tool Handlers", () => {
     });
 
     it("should handle invalid tool name", async () => {
-      const request = {
+      const request: CallToolRequest = {
         method: "tools/call" as const,
         params: {
           name: "invalid_tool" as any,
@@ -159,14 +189,14 @@ describe("Tool Handlers", () => {
       };
 
       await expect(handleToolCall(request)).rejects.toThrow(
-        "Unknown tool: invalid_tool"
+        "Tool call failed: Unknown tool: invalid_tool"
       );
     });
 
     it("should handle service errors", async () => {
       mockService.createPrompt.mockRejectedValue(new Error("Service error"));
 
-      const request = {
+      const request: CallToolRequest = {
         method: "tools/call" as const,
         params: {
           name: "systemprompt_create_prompt",
@@ -183,7 +213,7 @@ describe("Tool Handlers", () => {
       };
 
       await expect(handleToolCall(request)).rejects.toThrow(
-        "Failed to systemprompt create_prompt: Service error"
+        "Tool call failed: Service error"
       );
     });
   });

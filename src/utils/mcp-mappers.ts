@@ -48,6 +48,7 @@ export function mapPromptToGetPromptResult(
       },
     ],
     arguments: mapPromptArguments(prompt),
+    tools: [],
     _meta: { prompt },
   };
 }
@@ -60,12 +61,12 @@ export function mapPromptsToListPromptsResult(
   prompts: SystempromptPromptResponse[]
 ): ListPromptsResult {
   return {
+    _meta: { prompts },
     prompts: prompts.map((prompt) => ({
       name: prompt.metadata.title,
       description: prompt.metadata.description,
-      arguments: mapPromptArguments(prompt),
+      arguments: [],
     })),
-    _meta: { prompts },
   };
 }
 
@@ -84,7 +85,7 @@ export function mapBlockToReadResourceResult(
         text: block.content,
       },
     ],
-    _meta: { block },
+    _meta: {},
   };
 }
 
@@ -102,6 +103,6 @@ export function mapBlocksToListResourcesResult(
       description: block.metadata.description || undefined,
       mimeType: "text/plain",
     })),
-    _meta: { blocks },
+    _meta: {},
   };
 }

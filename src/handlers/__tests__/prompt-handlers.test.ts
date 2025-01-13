@@ -104,8 +104,6 @@ describe("Prompt Handlers", () => {
       });
 
       expect(result).toEqual({
-        _meta: { prompt: mockPrompt },
-        tools: [],
         name: mockPrompt.metadata.title,
         description: mockPrompt.metadata.description,
         messages: [
@@ -118,6 +116,8 @@ describe("Prompt Handlers", () => {
           },
         ],
         arguments: [],
+        tools: [],
+        _meta: { prompt: mockPrompt },
       });
     });
 

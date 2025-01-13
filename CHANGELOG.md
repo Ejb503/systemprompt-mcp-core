@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.11] - 2025-01-13
+
+### Changed
+
+- Added comprehensive test coverage for notification handling
+- Enhanced test organization for tool handlers and prompt handlers
+- Improved test structure with better mocking patterns for resource handlers
+
 ## [1.0.10] - 2025-01-13
 
 ### Changed

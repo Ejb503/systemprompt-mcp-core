@@ -17,33 +17,61 @@ describe("MCP Mappers", () => {
     it("should correctly map a single prompt to GetPromptResult format", () => {
       const result = mapPromptToGetPromptResult(mockSystemPromptResult);
 
-      expect(result.id).toBe(mockSystemPromptResult.id);
-      expect(result.metadata).toEqual(mockSystemPromptResult.metadata);
-      expect(result.instruction).toEqual(mockSystemPromptResult.instruction);
-      expect(result.input).toEqual(mockSystemPromptResult.input);
-      expect(result.output).toEqual(mockSystemPromptResult.output);
-      expect(result._link).toBe(mockSystemPromptResult._link);
-      expect(result.messages).toEqual([]);
+      expect(result.name).toBe(mockSystemPromptResult.metadata.title);
+      expect(result.description).toBe(
+        mockSystemPromptResult.metadata.description
+      );
+      expect(result.messages).toEqual([
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: mockSystemPromptResult.instruction.static,
+          },
+        },
+      ]);
+      expect(result.tools).toEqual([]);
+      expect(result._meta).toEqual({ prompt: mockSystemPromptResult });
     });
 
     it("should handle prompts with array inputs", () => {
       const result = mapPromptToGetPromptResult(mockArrayPromptResult);
 
-      expect(result.id).toBe(mockArrayPromptResult.id);
-      // @ts-ignore
-      expect((result as unknown as GetPromptResult).input.schema).toEqual(
-        mockArrayPromptResult.input.schema
+      expect(result.name).toBe(mockArrayPromptResult.metadata.title);
+      expect(result.description).toBe(
+        mockArrayPromptResult.metadata.description
       );
+      expect(result.messages).toEqual([
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: mockArrayPromptResult.instruction.static,
+          },
+        },
+      ]);
+      expect(result.tools).toEqual([]);
+      expect(result._meta).toEqual({ prompt: mockArrayPromptResult });
     });
 
     it("should handle prompts with nested object inputs", () => {
       const result = mapPromptToGetPromptResult(mockNestedPromptResult);
 
-      expect(result.id).toBe(mockNestedPromptResult.id);
-      // @ts-ignore
-      expect((result as unknown as GetPromptResult).input.schema).toEqual(
-        mockNestedPromptResult.input.schema
+      expect(result.name).toBe(mockNestedPromptResult.metadata.title);
+      expect(result.description).toBe(
+        mockNestedPromptResult.metadata.description
       );
+      expect(result.messages).toEqual([
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: mockNestedPromptResult.instruction.static,
+          },
+        },
+      ]);
+      expect(result.tools).toEqual([]);
+      expect(result._meta).toEqual({ prompt: mockNestedPromptResult });
     });
   });
 
@@ -58,14 +86,14 @@ describe("MCP Mappers", () => {
         description: mockSystemPromptResult.metadata.description,
         arguments: [],
       });
-      expect(result._meta).toEqual({});
+      expect(result._meta).toEqual({ prompts });
     });
 
     it("should handle empty prompt array", () => {
       const result = mapPromptsToListPromptsResult([]);
 
       expect(result.prompts).toHaveLength(0);
-      expect(result._meta).toEqual({});
+      expect(result._meta).toEqual({ prompts: [] });
     });
   });
 
