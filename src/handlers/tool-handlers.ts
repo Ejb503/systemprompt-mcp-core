@@ -314,7 +314,13 @@ export async function handleToolCall(
         };
 
         const result = await service.createPrompt(promptData);
-        await sendPromptChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendPromptChangedNotification();
+          } catch (error) {
+            console.error("Failed to send prompt changed notification:", error);
+          }
+        });
         return {
           content: [
             { type: "text", text: `Created prompt: ${result.metadata.title}` },
@@ -352,7 +358,13 @@ export async function handleToolCall(
         }
 
         const result = await service.editPrompt(args.uuid, updateData);
-        await sendPromptChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendPromptChangedNotification();
+          } catch (error) {
+            console.error("Failed to send prompt changed notification:", error);
+          }
+        });
         return {
           content: [
             { type: "text", text: `Updated prompt: ${result.metadata.title}` },
@@ -372,7 +384,16 @@ export async function handleToolCall(
         };
 
         const result = await service.createBlock(blockData);
-        await sendResourceChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendResourceChangedNotification();
+          } catch (error) {
+            console.error(
+              "Failed to send resource changed notification:",
+              error
+            );
+          }
+        });
         return {
           content: [
             {
@@ -387,6 +408,13 @@ export async function handleToolCall(
         const args = request.params.arguments as unknown as EditResourceArgs;
         const updateData: Partial<SystempromptBlockRequest> = {};
 
+        if (args.title || args.description) {
+          updateData.metadata = {
+            title: args.title || "",
+            description: args.description || "",
+          };
+        }
+
         if (args.content) {
           updateData.content = args.content;
         }
@@ -395,15 +423,17 @@ export async function handleToolCall(
           updateData.prefix = args.prefix;
         }
 
-        if (args.title || args.description) {
-          updateData.metadata = {
-            title: args.title || "",
-            description: args.description || "",
-          };
-        }
-
         const result = await service.editBlock(args.uuid, updateData);
-        await sendResourceChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendResourceChangedNotification();
+          } catch (error) {
+            console.error(
+              "Failed to send resource changed notification:",
+              error
+            );
+          }
+        });
         return {
           content: [
             {
@@ -430,22 +460,33 @@ export async function handleToolCall(
       case "systemprompt_delete_prompt": {
         const args = request.params.arguments as unknown as DeleteArgs;
         await service.deletePrompt(args.uuid);
-        await sendPromptChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendPromptChangedNotification();
+          } catch (error) {
+            console.error("Failed to send prompt changed notification:", error);
+          }
+        });
         return {
-          content: [
-            { type: "text", text: `Deleted prompt with UUID: ${args.uuid}` },
-          ],
+          content: [{ type: "text", text: "Deleted prompt" }],
         };
       }
 
       case "systemprompt_delete_resource": {
         const args = request.params.arguments as unknown as DeleteArgs;
         await service.deleteBlock(args.uuid);
-        await sendResourceChangedNotification();
+        process.nextTick(async () => {
+          try {
+            await sendResourceChangedNotification();
+          } catch (error) {
+            console.error(
+              "Failed to send resource changed notification:",
+              error
+            );
+          }
+        });
         return {
-          content: [
-            { type: "text", text: `Deleted resource with UUID: ${args.uuid}` },
-          ],
+          content: [{ type: "text", text: "Deleted resource" }],
         };
       }
 
@@ -453,11 +494,7 @@ export async function handleToolCall(
         throw new Error(`Unknown tool: ${request.params.name}`);
     }
   } catch (error: any) {
-    if (error.message.startsWith("Unknown tool:")) {
-      throw error;
-    }
-    throw new Error(
-      `Failed to ${request.params.name.replace("_", " ")}: ${error.message}`
-    );
+    console.error("Tool call failed:", error);
+    throw new Error(`Tool call failed: ${error.message || "Unknown error"}`);
   }
 }

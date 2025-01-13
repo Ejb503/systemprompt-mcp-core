@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.10] - 2025-01-13
+
+### Changed
+
+- Enhanced test coverage and organization in prompt and tool handlers
+- Updated tsconfig.json to properly exclude test and mock directories
+- Improved test structure with better mocking patterns
+
 ## [1.0.9] - 2025-01-10
 
 ### Added

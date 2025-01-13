@@ -10,16 +10,16 @@ export class SystemPromptService {
   private apiKey: string;
   private baseUrl: string;
 
-  private constructor(apiKey: string) {
+  private constructor(apiKey: string, baseUrl?: string) {
     if (!apiKey) {
       throw new Error("API key is required");
     }
     this.apiKey = apiKey;
-    this.baseUrl = "https://api.systemprompt.io/v1";
+    this.baseUrl = baseUrl || "https://api.systemprompt.io/v1";
   }
 
-  public static initialize(apiKey: string): void {
-    SystemPromptService.instance = new SystemPromptService(apiKey);
+  public static initialize(apiKey: string, baseUrl?: string): void {
+    SystemPromptService.instance = new SystemPromptService(apiKey, baseUrl);
   }
 
   public static getInstance(): SystemPromptService {

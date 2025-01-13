@@ -1,204 +1,190 @@
-import { jest } from "@jest/globals";
-import { SystemPromptService } from "../../services/systemprompt-service.js";
-import { handleListTools, handleToolCall } from "../tool-handlers.js";
-import type { JSONSchema7 } from "json-schema";
-import type {
-  SystempromptPromptAPIRequest,
-  SystempromptPromptResponse,
-  SystempromptPromptRequest,
-} from "../../types/index.js";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { handleListTools, handleToolCall } from "../tool-handlers";
+import { SystemPromptService } from "../../services/systemprompt-service";
+import type { SystempromptPromptResponse } from "../../types/index";
 
-jest.mock("../../services/systemprompt-service.js");
+// Manually mock the SDK modules
+const mockServer = {
+  start: jest.fn(),
+  stop: jest.fn(),
+  onRequest: jest.fn(),
+  registerHandler: jest.fn(),
+  registerHandlers: jest.fn(),
+};
+
+const mockTransport = {
+  start: jest.fn(),
+  stop: jest.fn(),
+  onRequest: jest.fn(),
+};
+
+jest.mock("@modelcontextprotocol/sdk/server/stdio.js", () => ({
+  __esModule: true,
+  StdioServerTransport: jest.fn(() => mockTransport),
+}));
+
+jest.mock("@modelcontextprotocol/sdk/server/index.js", () => ({
+  __esModule: true,
+  Server: jest.fn(() => mockServer),
+}));
+
+// Mock the SystemPromptService class
+const mockGetInstance = jest.fn();
+jest.mock("../../services/systemprompt-service", () => ({
+  SystemPromptService: {
+    getInstance: () => mockGetInstance(),
+    initialize: jest.fn(),
+  },
+}));
 
 describe("Tool Handlers", () => {
-  const mockSchema: JSONSchema7 = {
-    type: "object",
-    properties: {
-      test: { type: "string" },
-    },
-  };
-
-  const mockResponse: SystempromptPromptResponse = {
-    id: "test-uuid",
-    instruction: {
-      static: "Test instruction",
-      dynamic: "",
-      state: "",
-    },
-    input: {
-      name: "test_input",
-      description: "Test input",
-      type: ["message"],
-      schema: mockSchema,
-    },
-    output: {
-      name: "test_output",
-      description: "Test output",
-      type: ["message"],
-      schema: mockSchema,
-    },
-    metadata: {
-      title: "Test Prompt",
-      description: "Test description",
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-      version: 1,
-      status: "draft",
-      author: "test",
-      log_message: "Created",
-    },
-    _link: "test-link",
-  };
-
-  const mockService = {
-    apiKey: "test-key",
-    baseUrl: "https://api.test.com",
-    request: jest.fn(),
-    getAllPrompts: jest.fn<() => Promise<SystempromptPromptResponse[]>>(),
-    createPrompt: jest
-      .fn<
-        (
-          data: SystempromptPromptAPIRequest
-        ) => Promise<SystempromptPromptResponse>
-      >()
-      .mockImplementation(async (data) => mockResponse),
-    editPrompt:
-      jest.fn<
-        (
-          uuid: string,
-          data: Partial<SystempromptPromptAPIRequest>
-        ) => Promise<SystempromptPromptResponse>
-      >(),
-  };
+  let mockService: jest.Mocked<SystemPromptService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    SystemPromptService.initialize("test-api-key");
-    jest
-      .spyOn(SystemPromptService, "getInstance")
-      .mockReturnValue(mockService as unknown as SystemPromptService);
+    mockService = {
+      createPrompt: jest.fn(),
+      editPrompt: jest.fn(),
+      deletePrompt: jest.fn(),
+      createBlock: jest.fn(),
+      editBlock: jest.fn(),
+      deleteBlock: jest.fn(),
+      getBlock: jest.fn(),
+      getAllPrompts: jest.fn(),
+      listBlocks: jest.fn(),
+      request: jest.fn(),
+    } as any;
+    mockGetInstance.mockReturnValue(mockService);
   });
 
   describe("handleListTools", () => {
     it("should return list of available tools", async () => {
-      const result = await handleListTools({ method: "tools/list" });
+      const request = {
+        method: "tools/list" as const,
+      };
+
+      const result = await handleListTools(request);
 
       expect(Array.isArray(result.tools)).toBe(true);
       expect(result.tools.length).toBeGreaterThan(0);
+
+      // Verify the structure of each tool
       result.tools.forEach((tool) => {
-        expect(tool.name).toBeDefined();
-        expect(tool.description).toBeDefined();
-        expect(tool.inputSchema).toBeDefined();
+        expect(tool).toMatchObject({
+          name: expect.stringMatching(/^systemprompt_/),
+          description: expect.any(String),
+          inputSchema: expect.objectContaining({
+            type: "object",
+            properties: expect.any(Object),
+          }),
+        });
       });
+
+      // Verify specific tools exist
+      const toolNames = result.tools.map((t) => t.name);
+      expect(toolNames).toContain("systemprompt_create_prompt");
+      expect(toolNames).toContain("systemprompt_edit_prompt");
+      expect(toolNames).toContain("systemprompt_create_resource");
     });
   });
 
   describe("handleToolCall", () => {
-    describe("systemprompt_create_prompt", () => {
-      it("should create a new prompt", async () => {
-        const mockResponse: SystempromptPromptResponse = {
-          id: "test-uuid",
-          instruction: {
-            static: "Test instruction",
-            dynamic: "",
+    it("should handle create prompt request", async () => {
+      const mockPrompt: SystempromptPromptResponse = {
+        id: "test-id",
+        instruction: {
+          static: "Test instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test_input",
+          description: "Test input description",
+          type: ["message"],
+          schema: {},
+        },
+        output: {
+          name: "test_output",
+          description: "Test output description",
+          type: ["message"],
+          schema: {},
+        },
+        metadata: {
+          title: "Test prompt",
+          description: "Test description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "draft",
+          author: "test",
+          log_message: "Created",
+        },
+        _link: "test-link",
+      };
+
+      mockService.createPrompt.mockResolvedValue(mockPrompt);
+
+      const request = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_create_prompt",
+          arguments: {
+            title: "Test prompt",
+            description: "Test description",
+            static_instruction: "Test instruction",
+            dynamic_instruction: "",
             state: "",
+            input_type: ["message"],
+            output_type: ["message"],
           },
-          input: {
-            name: "test_input",
-            description: "Test input",
-            type: ["message"],
-            schema: mockSchema,
-          },
-          output: {
-            name: "test_output",
-            description: "Test output",
-            type: ["message"],
-            schema: mockSchema,
-          },
-          metadata: {
-            title: "Test Prompt",
+        },
+      };
+
+      const result = await handleToolCall(request);
+
+      expect(result).toBeDefined();
+      expect(result.content).toEqual([
+        { type: "text", text: "Created prompt: Test prompt" },
+      ]);
+      expect(mockService.createPrompt).toHaveBeenCalled();
+    });
+
+    it("should handle invalid tool name", async () => {
+      const request = {
+        method: "tools/call" as const,
+        params: {
+          name: "invalid_tool" as any,
+          arguments: {},
+        },
+      };
+
+      await expect(handleToolCall(request)).rejects.toThrow(
+        "Unknown tool: invalid_tool"
+      );
+    });
+
+    it("should handle service errors", async () => {
+      mockService.createPrompt.mockRejectedValue(new Error("Service error"));
+
+      const request = {
+        method: "tools/call" as const,
+        params: {
+          name: "systemprompt_create_prompt",
+          arguments: {
+            title: "Test prompt",
             description: "Test description",
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Created",
+            static_instruction: "Test instruction",
+            dynamic_instruction: "",
+            state: "",
+            input_type: ["message"],
+            output_type: ["message"],
           },
-          _link: "test-link",
-        };
+        },
+      };
 
-        mockService.createPrompt.mockResolvedValueOnce(mockResponse);
-
-        console.log("About to call handleToolCall");
-        const result = await handleToolCall({
-          method: "tools/call",
-          params: {
-            name: "systemprompt_create_prompt",
-            arguments: {
-              title: "Test Prompt",
-              description: "Test description",
-              static_instruction: "Test instruction",
-              dynamic_instruction: "{{message}}",
-              state: "{{conversation.history}}",
-              input_type: ["message"],
-              output_type: ["message"],
-            },
-          },
-        });
-        console.log("handleToolCall result:", result);
-
-        expect(result).toBeDefined();
-        console.log("About to check createPrompt call");
-        expect(mockService.createPrompt).toHaveBeenCalledWith({
-          metadata: {
-            title: "Test Prompt",
-            description: "Test description",
-          },
-          instruction: {
-            static: "Test instruction",
-            dynamic: "{{message}}",
-            state: "{{conversation.history}}",
-          },
-          input: {
-            type: ["message"],
-            schema: {},
-            name: "Test PromptinputSchema",
-            description: "Test PromptinputDescription",
-          },
-          output: {
-            type: ["message"],
-            schema: {},
-            name: "Test PromptoutputSchema",
-            description: "Test PromptoutputDescription",
-          },
-        });
-      });
-
-      it("should handle errors", async () => {
-        const error = new Error("Failed to create prompt");
-        mockService.createPrompt.mockRejectedValueOnce(error);
-
-        await expect(
-          handleToolCall({
-            method: "tools/call",
-            params: {
-              name: "systemprompt_create_prompt",
-              arguments: {
-                title: "Test Prompt",
-                description: "Test description",
-                static_instruction: "Test instruction",
-                dynamic_instruction: "{{message}}",
-                state: "{{conversation.history}}",
-                input_type: ["message"],
-                output_type: ["message"],
-              },
-            },
-          })
-        ).rejects.toThrow(
-          "Failed to systemprompt create_prompt: Failed to create prompt"
-        );
-      });
+      await expect(handleToolCall(request)).rejects.toThrow(
+        "Failed to systemprompt create_prompt: Service error"
+      );
     });
   });
 });

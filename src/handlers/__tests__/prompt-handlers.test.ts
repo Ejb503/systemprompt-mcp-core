@@ -80,7 +80,7 @@ describe("Prompt Handlers", () => {
         description: mockPrompt.metadata.description,
         arguments: [],
       });
-      expect(result._meta).toEqual({});
+      expect(result._meta).toEqual({ prompts: [mockPrompt] });
     });
 
     it("should handle API errors", async () => {
@@ -104,38 +104,20 @@ describe("Prompt Handlers", () => {
       });
 
       expect(result).toEqual({
-        _meta: {},
+        _meta: { prompt: mockPrompt },
         tools: [],
-        id: mockPrompt.id,
-        metadata: {
-          title: mockPrompt.metadata.title,
-          description: mockPrompt.metadata.description,
-          created: mockPrompt.metadata.created,
-          updated: mockPrompt.metadata.updated,
-          version: mockPrompt.metadata.version,
-          status: mockPrompt.metadata.status,
-          author: mockPrompt.metadata.author,
-          log_message: mockPrompt.metadata.log_message,
-        },
-        instruction: {
-          static: mockPrompt.instruction.static,
-          dynamic: mockPrompt.instruction.dynamic,
-          state: mockPrompt.instruction.state,
-        },
-        input: {
-          name: mockPrompt.input.name,
-          description: mockPrompt.input.description,
-          type: mockPrompt.input.type,
-          schema: mockPrompt.input.schema,
-        },
-        output: {
-          name: mockPrompt.output.name,
-          description: mockPrompt.output.description,
-          type: mockPrompt.output.type,
-          schema: mockPrompt.output.schema,
-        },
-        messages: [],
-        _link: mockPrompt._link,
+        name: mockPrompt.metadata.title,
+        description: mockPrompt.metadata.description,
+        messages: [
+          {
+            role: "assistant",
+            content: {
+              type: "text",
+              text: mockPrompt.instruction.static,
+            },
+          },
+        ],
+        arguments: [],
       });
     });
 
