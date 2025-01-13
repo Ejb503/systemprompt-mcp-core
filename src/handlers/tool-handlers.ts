@@ -124,6 +124,16 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "systemprompt_list_resources",
+    description:
+      "Fetches all resources from the systemprompt.io API and returns them in MCP format.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+
+  {
     name: "systemprompt_create_resource",
     description:
       "Creates a new resource block that can be referenced by prompts. Resources are reusable content blocks that can be included in multiple prompts. Requires title, description, content, and unique prefix.",
@@ -528,6 +538,21 @@ export async function handleToolCall(
 
         return {
           content: [{ type: "text", text: "Deleted resource" }],
+        };
+      }
+
+      case "systemprompt_list_resources": {
+        const service = SystemPromptService.getInstance();
+        const blocks = await service.listBlocks();
+        return {
+          content: blocks.map((block) => ({
+            type: "resource" as const,
+            resource: {
+              uri: `resource:///block/${block.id}`,
+              text: block.content,
+              mimeType: "text/plain",
+            },
+          })),
         };
       }
 
