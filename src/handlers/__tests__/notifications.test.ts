@@ -149,7 +149,7 @@ describe("Notifications", () => {
             {
               name: "Test Block",
               description: "A test block",
-              uri: "test-block",
+              uri: "resource:///block/test-block",
               mimeType: "text/plain",
             },
           ],

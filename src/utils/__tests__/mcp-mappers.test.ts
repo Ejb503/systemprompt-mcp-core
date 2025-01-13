@@ -119,7 +119,7 @@ describe("MCP Mappers", () => {
 
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0]).toEqual({
-        uri: mockBlock.id,
+        uri: `resource:///block/${mockBlock.id}`,
         mimeType: "text/plain",
         text: mockBlock.content,
       });
@@ -166,13 +166,13 @@ describe("MCP Mappers", () => {
 
       expect(result.resources).toHaveLength(2);
       expect(result.resources[0]).toEqual({
-        uri: mockBlocks[0].id,
+        uri: `resource:///block/${mockBlocks[0].id}`,
         name: mockBlocks[0].metadata.title,
         description: mockBlocks[0].metadata.description,
         mimeType: "text/plain",
       });
       expect(result.resources[1]).toEqual({
-        uri: mockBlocks[1].id,
+        uri: `resource:///block/${mockBlocks[1].id}`,
         name: mockBlocks[1].metadata.title,
         description: undefined,
         mimeType: "text/plain",

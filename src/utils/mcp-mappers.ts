@@ -80,7 +80,7 @@ export function mapBlockToReadResourceResult(
   return {
     contents: [
       {
-        uri: block.id,
+        uri: `resource:///block/${block.id}`,
         mimeType: "text/plain",
         text: block.content,
       },

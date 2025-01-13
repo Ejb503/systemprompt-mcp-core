@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.16] - 2025-01-13
+
+### Fixed
+
+- Updated tests to match the correct resource URI format (`resource:///block/{id}`)
+- Fixed test expectations in resource handlers and mappers
+
 ## [1.0.15] - 2025-01-13
 
 ### Fixed
