@@ -488,8 +488,11 @@ export async function handleToolCall(
         return {
           content: [
             {
-              type: "text",
-              text: result.content,
+              type: "resource",
+              resource: {
+                uri: `resource:///block/${args.uuid}`,
+                text: result.content,
+              },
             },
           ],
         };

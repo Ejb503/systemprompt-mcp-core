@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.13] - 2025-01-13
+
+### Fixed
+
+- Fixed resource response format in `systemprompt_fetch_resource` tool to match MCP protocol requirements
+- Updated tests to match the new resource response format
+
 ## [1.0.12] - 2025-01-13
 
 ### Changed

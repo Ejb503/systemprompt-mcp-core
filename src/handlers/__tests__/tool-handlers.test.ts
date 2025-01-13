@@ -386,7 +386,15 @@ describe("Tool Handlers", () => {
       };
 
       const result = await handleToolCall(request);
-      expect(result.content).toEqual([{ type: "text", text: "Test content" }]);
+      expect(result.content).toEqual([
+        {
+          type: "resource",
+          resource: {
+            uri: "resource:///block/test-uuid",
+            text: "Test content",
+          },
+        },
+      ]);
       expect(mockService.getBlock).toHaveBeenCalled();
     });
 
