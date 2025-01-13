@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.15] - 2025-01-13
+
+### Fixed
+
+- Fixed resource URI format in list resources response to consistently use `resource:///block/{id}` format
+- Improved handling of null descriptions in resource list response
+
+## [1.0.14] - 2025-01-13
+
+### Fixed
+
+- Modified resource handler to accept both plain UUIDs and full resource URIs
+- Improved compatibility with MCP resource protocol
+
 ## [1.0.13] - 2025-01-13
 
 ### Fixed

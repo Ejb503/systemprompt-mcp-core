@@ -97,12 +97,12 @@ export function mapBlocksToListResourcesResult(
   blocks: SystempromptBlockResponse[]
 ): ListResourcesResult {
   return {
+    _meta: {},
     resources: blocks.map((block) => ({
-      uri: block.id,
+      uri: `resource:///block/${block.id}`,
       name: block.metadata.title,
       description: block.metadata.description || undefined,
       mimeType: "text/plain",
     })),
-    _meta: {},
   };
 }
