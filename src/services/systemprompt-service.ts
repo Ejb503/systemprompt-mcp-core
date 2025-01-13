@@ -51,20 +51,35 @@ export class SystemPromptService {
       });
 
       let responseData;
-      try {
-        responseData = await response.json();
-      } catch (e) {
-        throw new Error("API request failed");
+      if (response.status !== 204) {
+        try {
+          responseData = await response.json();
+        } catch (e) {
+          throw new Error("Failed to parse API response");
+        }
       }
 
       if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error("Invalid API key");
+        switch (response.status) {
+          case 403:
+            throw new Error("Invalid API key");
+          case 404:
+            throw new Error("Resource not found - it may have been deleted");
+          case 409:
+            throw new Error("Resource conflict - it may have been edited");
+          case 400:
+            throw new Error(
+              responseData.message || "Invalid request parameters"
+            );
+          default:
+            throw new Error(
+              responseData?.message ||
+                `API request failed with status ${response.status}`
+            );
         }
-        throw new Error(responseData.message || "API request failed");
       }
 
-      return responseData;
+      return responseData as T;
     } catch (error: any) {
       if (error.message) {
         throw error;
@@ -118,7 +133,7 @@ export class SystemPromptService {
   async getBlock(blockId: string): Promise<SystempromptBlockResponse> {
     return this.request<SystempromptBlockResponse>(`/block/${blockId}`, "GET");
   }
- 
+
   async deletePrompt(uuid: string): Promise<void> {
     return this.request<void>(`/prompt/${uuid}`, "DELETE");
   }

@@ -516,16 +516,16 @@ export async function handleToolCall(
       case "systemprompt_delete_resource": {
         const args = request.params.arguments as unknown as DeleteArgs;
         await service.deleteBlock(args.uuid);
-        process.nextTick(async () => {
-          try {
-            await sendResourceChangedNotification();
-          } catch (error) {
+
+        process.nextTick(() => {
+          sendResourceChangedNotification().catch((error) => {
             console.error(
               "Failed to send resource changed notification:",
               error
             );
-          }
+          });
         });
+
         return {
           content: [{ type: "text", text: "Deleted resource" }],
         };

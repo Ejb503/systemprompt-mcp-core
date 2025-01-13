@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.17] - 2025-01-13
+
+### Fixed
+
+- Enhanced error handling in SystemPromptService to properly handle 204 No Content responses
+- Improved HTTP status code handling with specific error messages for 400, 403, 404, and 409 responses
+- Fixed test expectations to match the new error messages
+- Improved test consistency by using a consistent base URL configuration
+
 ## [1.0.16] - 2025-01-13
 
 ### Fixed

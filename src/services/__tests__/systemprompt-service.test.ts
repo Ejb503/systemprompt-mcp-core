@@ -16,12 +16,13 @@ global.fetch = mockFetch as unknown as typeof fetch;
 describe("SystemPromptService", () => {
   let service: SystemPromptService;
   const mockApiKey = "test-api-key";
+  const baseUrl = "http://127.0.0.1/v1";
 
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset the instance before each test
     (SystemPromptService as any).instance = null;
-    SystemPromptService.initialize(mockApiKey);
+    SystemPromptService.initialize(mockApiKey, baseUrl);
     service = SystemPromptService.getInstance();
   });
 
@@ -72,7 +73,7 @@ describe("SystemPromptService", () => {
       );
 
       await expect(service.getAllPrompts()).rejects.toThrow(
-        "API request failed"
+        "Failed to parse API response"
       );
     });
   });
@@ -124,17 +125,14 @@ describe("SystemPromptService", () => {
 
       const result = await service.createPrompt(validPromptData);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.systemprompt.io/v1/prompt",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "api-key": mockApiKey,
-          },
-          body: JSON.stringify(validPromptData),
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/prompt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": mockApiKey,
+        },
+        body: JSON.stringify(validPromptData),
+      });
 
       expect(result).toEqual(mockResponse);
     });
@@ -216,17 +214,14 @@ describe("SystemPromptService", () => {
 
       const result = await service.editPrompt(uuid, updateData);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `https://api.systemprompt.io/v1/prompt/${uuid}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "api-key": mockApiKey,
-          },
-          body: JSON.stringify(updateData),
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/prompt/${uuid}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": mockApiKey,
+        },
+        body: JSON.stringify(updateData),
+      });
 
       expect(result).toEqual(mockResponse);
     });
