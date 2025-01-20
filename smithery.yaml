@@ -1,0 +1,19 @@
+# Smithery configuration file: https://smithery.ai/docs/deployments
+
+build:
+  dockerBuildPath: .
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - systempromptApiKey
+    properties:
+      systempromptApiKey:
+        type: string
+        description: The API key for the systemprompt-agent-server.
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
+    (config) => ({command: 'node', args: ['./build/index.js'], env: {SYSTEMPROMPT_API_KEY: config.systempromptApiKey}})
