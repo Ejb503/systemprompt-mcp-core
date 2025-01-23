@@ -361,7 +361,7 @@ describe("sampling", () => {
         },
       };
       await expect(sendSamplingRequest(invalidRequest)).rejects.toThrow(
-        "temperature must be a number between 0 and 1"
+        "Temperature must be between 0 and 1"
       );
     });
 
@@ -387,7 +387,7 @@ describe("sampling", () => {
         },
       };
       await expect(sendSamplingRequest(invalidRequest as any)).rejects.toThrow(
-        'includeContext must be "none", "thisServer", or "allServers"'
+        'includeContext must be one of: "none", "thisServer", or "allServers"'
       );
     });
 
@@ -404,7 +404,7 @@ describe("sampling", () => {
         },
       };
       await expect(sendSamplingRequest(invalidRequest)).rejects.toThrow(
-        "Model preference priorities must be numbers between 0 and 1"
+        "Priority values must be between 0 and 1"
       );
     });
   });
