@@ -1,161 +1,106 @@
 import { jest } from "@jest/globals";
-import { SystemPromptService } from "../../services/systemprompt-service.js";
 import {
   handleListResources,
   handleResourceCall,
 } from "../resource-handlers.js";
-import { SystempromptBlockResponse } from "../../types/index.js";
+import { SystemPromptService } from "../../services/systemprompt-service.js";
+import MockSystemPromptService from "../../__mocks__/systemprompt-service.js";
 
-jest.mock("../../services/systemprompt-service.js");
+jest.mock("../../services/systemprompt-service.js", () => {
+  return {
+    SystemPromptService: {
+      initialize: (apiKey: string) => {
+        const instance = MockSystemPromptService.getInstance();
+        instance.initialize(apiKey);
+      },
+      getInstance: () => MockSystemPromptService.getInstance(),
+      cleanup: () => {
+        // No cleanup needed for mock
+      },
+    },
+  };
+});
 
 describe("Resource Handlers", () => {
-  const mockInstance = {
-    listBlocks: jest.fn<() => Promise<SystempromptBlockResponse[]>>(),
-    getBlock: jest.fn<() => Promise<SystempromptBlockResponse>>(),
-    getAllPrompts: jest.fn(),
-    getPrompt: jest.fn(),
-    createPrompt: jest.fn(),
-    editPrompt: jest.fn(),
-    createBlock: jest.fn(),
-    editBlock: jest.fn(),
-    deleteBlock: jest.fn(),
-    deletePrompt: jest.fn(),
-    request: jest.fn(),
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
+  beforeAll(() => {
     SystemPromptService.initialize("test-api-key");
-    jest
-      .spyOn(SystemPromptService, "getInstance")
-      .mockReturnValue(mockInstance as unknown as SystemPromptService);
+  });
+
+  afterAll(() => {
+    SystemPromptService.cleanup();
   });
 
   describe("handleListResources", () => {
-    it("should list resources", async () => {
-      const mockBlocks: SystempromptBlockResponse[] = [
-        {
-          id: "block1",
-          content: "Test content 1",
-          prefix: "",
-          metadata: {
-            title: "Test Block 1",
-            description: "Test description 1",
-            created: "2024-01-01",
-            updated: "2024-01-01",
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Created",
-          },
-        },
-        {
-          id: "block2",
-          content: "Test content 2",
-          prefix: "",
-          metadata: {
-            title: "Test Block 2",
-            description: "Test description 2",
-            created: "2024-01-01",
-            updated: "2024-01-01",
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Created",
-          },
-        },
-      ];
-
-      mockInstance.listBlocks.mockResolvedValue(mockBlocks);
-
+    it("should list the default agent resource", async () => {
       const result = await handleListResources({
         method: "resources/list",
       });
 
-      expect(result.resources).toEqual(
-        mockBlocks.map((block) => ({
-          uri: `resource:///block/${block.id}`,
-          name: block.metadata.title,
-          description: block.metadata.description,
+      expect(result.resources).toEqual([
+        {
+          uri: "resource:///block/default",
+          name: "Systemprompt Agent",
+          description:
+            "An expert agent for managing and organizing content in workspaces",
           mimeType: "text/plain",
-        }))
-      );
-    });
-
-    it("should handle errors when listing resources", async () => {
-      const error = new Error("Test error");
-      mockInstance.listBlocks.mockRejectedValue(error);
-
-      await expect(
-        handleListResources({
-          method: "resources/list",
-        })
-      ).rejects.toThrow(
-        "Failed to fetch blocks from systemprompt.io: Test error"
-      );
-    });
-
-    it("should handle null description in resources", async () => {
-      const mockBlocksWithNullDesc: SystempromptBlockResponse[] = [
-        {
-          id: "block1",
-          content: "Test content 1",
-          prefix: "",
-          metadata: {
-            title: "Test Block 1",
-            description: null,
-            created: "2024-01-01",
-            updated: "2024-01-01",
-            version: 1,
-            status: "draft",
-            author: "test",
-            log_message: "Created",
-          },
         },
-      ];
-
-      mockInstance.listBlocks.mockResolvedValue(mockBlocksWithNullDesc);
-
-      const result = await handleListResources({
-        method: "resources/list",
-      });
-
-      expect(result.resources[0].description).toBeUndefined();
+      ]);
+      expect(result._meta).toEqual({});
     });
   });
 
   describe("handleResourceCall", () => {
-    it("should get a resource by URI", async () => {
-      const mockBlock: SystempromptBlockResponse = {
-        id: "block1",
-        content: "Test content",
-        prefix: "",
-        metadata: {
-          title: "Test Block",
-          description: "Test description",
-          created: "2024-01-01",
-          updated: "2024-01-01",
-          version: 1,
-          status: "draft",
-          author: "test",
-          log_message: "Created",
-        },
-      };
-
-      mockInstance.getBlock.mockResolvedValue(mockBlock);
-
+    it("should get the default agent resource", async () => {
       const result = await handleResourceCall({
         method: "resources/read",
         params: {
-          uri: "resource:///block/block1",
+          uri: "resource:///block/default",
         },
       });
 
-      expect(result.contents[0]).toEqual({
-        uri: `resource:///block/${mockBlock.id}`,
-        mimeType: "text/plain",
-        text: mockBlock.content,
+      const parsedContent = JSON.parse(result.contents[0].text as string) as {
+        name: string;
+        description: string;
+        instruction: string;
+        voice: string;
+        config: {
+          model: string;
+          generationConfig: {
+            responseModalities: string;
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: string;
+                };
+              };
+            };
+          };
+        };
+      };
+
+      expect(result.contents[0].uri).toBe("resource:///block/default");
+      expect(result.contents[0].mimeType).toBe("text/plain");
+      expect(parsedContent).toEqual({
+        name: "Systemprompt Agent",
+        description:
+          "An expert agent for managing and organizing content in workspaces",
+        instruction: "You are a specialized agent",
+        voice: "Kore",
+        config: {
+          model: "models/gemini-2.0-flash-exp",
+          generationConfig: {
+            responseModalities: "audio",
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: "Kore",
+                },
+              },
+            },
+          },
+        },
       });
+      expect(result._meta).toEqual({});
     });
 
     it("should handle invalid URI format", async () => {
@@ -171,33 +116,16 @@ describe("Resource Handlers", () => {
       );
     });
 
-    it("should handle API errors", async () => {
-      mockInstance.getBlock.mockRejectedValue(new Error("API error"));
-
+    it("should handle non-default resource request", async () => {
       await expect(
         handleResourceCall({
           method: "resources/read",
           params: {
-            uri: "resource:///block/block1",
+            uri: "resource:///block/nonexistent",
           },
         })
       ).rejects.toThrow(
-        "Failed to fetch block from systemprompt.io: API error"
-      );
-    });
-
-    it("should handle missing block", async () => {
-      mockInstance.getBlock.mockRejectedValue(new Error());
-
-      await expect(
-        handleResourceCall({
-          method: "resources/read",
-          params: {
-            uri: "resource:///block/block1",
-          },
-        })
-      ).rejects.toThrow(
-        "Failed to fetch block from systemprompt.io: Unknown error"
+        "Failed to fetch block from systemprompt.io: Resource not found"
       );
     });
   });

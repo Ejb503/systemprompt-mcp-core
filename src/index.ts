@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { serverConfig, serverCapabilities } from "./config/server-config.js";
 import {
   handleListResources,
   handleResourceCall,
@@ -10,7 +9,6 @@ import {
   handleListPrompts,
   handleGetPrompt,
 } from "./handlers/prompt-handlers.js";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
@@ -18,37 +16,38 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
   CallToolRequestSchema,
+  CreateMessageRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "dotenv";
 import { SystemPromptService } from "./services/systemprompt-service.js";
+import { sendSamplingRequest } from "./handlers/sampling.js";
+import { server } from "./server.js";
 
-export const server = new Server(serverConfig, serverCapabilities);
+export async function main() {
+  config();
 
-async function main() {
-  try {
-    config();
-    const apiKey = process.env.SYSTEMPROMPT_API_KEY;
-    if (!apiKey) {
-      throw new Error("SYSTEMPROMPT_API_KEY environment variable is required");
-    }
-    SystemPromptService.initialize(apiKey);
-
-    server.setRequestHandler(ListResourcesRequestSchema, handleListResources);
-    server.setRequestHandler(ReadResourceRequestSchema, handleResourceCall);
-    server.setRequestHandler(ListToolsRequestSchema, handleListTools);
-    server.setRequestHandler(CallToolRequestSchema, handleToolCall);
-    server.setRequestHandler(ListPromptsRequestSchema, handleListPrompts);
-    server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
-
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-  } catch (error) {
-    console.error("Server error:", error);
-    process.exit(1);
+  const apiKey = process.env.SYSTEMPROMPT_API_KEY;
+  if (!apiKey) {
+    throw new Error("SYSTEMPROMPT_API_KEY environment variable is required");
   }
+  SystemPromptService.initialize(apiKey);
+
+  server.setRequestHandler(ListResourcesRequestSchema, handleListResources);
+  server.setRequestHandler(ReadResourceRequestSchema, handleResourceCall);
+  server.setRequestHandler(ListToolsRequestSchema, handleListTools);
+  server.setRequestHandler(CallToolRequestSchema, handleToolCall);
+  server.setRequestHandler(ListPromptsRequestSchema, handleListPrompts);
+  server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
+  server.setRequestHandler(CreateMessageRequestSchema, sendSamplingRequest);
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+// Run the server unless in test environment
+if (process.env.NODE_ENV !== "test") {
+  main().catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+}

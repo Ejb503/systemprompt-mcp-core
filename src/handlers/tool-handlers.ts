@@ -1,313 +1,26 @@
 import { SystemPromptService } from "../services/systemprompt-service.js";
 import {
-  sendPromptChangedNotification,
-  sendResourceChangedNotification,
-} from "./notifications.js";
-import type {
-  SystempromptPromptRequest,
-  SystempromptBlockRequest,
-  SystempromptPromptAPIRequest,
-} from "../types/index.js";
-import {
   CallToolRequest,
   CallToolResult,
   ListToolsRequest,
   ListToolsResult,
-  Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-
-interface CreatePromptArgs {
-  title: string;
-  description: string;
-  static_instruction: string;
-  dynamic_instruction: string;
-  state: string;
-  input_type: string[];
-  output_type: string[];
-}
-
-interface EditPromptArgs {
-  uuid: string;
-  title?: string;
-  description?: string;
-  static_instruction?: string;
-  dynamic_instruction?: string;
-  state?: string;
-  input_type?: string[];
-  output_type?: string[];
-}
-
-interface CreateResourceArgs {
-  title: string;
-  description: string;
-  content: string;
-  prefix: string;
-}
-
-interface EditResourceArgs {
-  uuid: string;
-  title?: string;
-  description?: string;
-  content?: string;
-  prefix?: string;
-}
-
-interface DeleteArgs {
-  uuid: string;
-}
-
-interface FetchResourceArgs {
-  uuid: string;
-}
-
-const TOOLS: Tool[] = [
-  {
-    name: "systemprompt_create_prompt",
-    description:
-      "Creates a new prompt template with static and dynamic instructions. Supports both message and structured data formats for input/output. Requires title, description, instructions, and type definitions.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        title: {
-          type: "string" as const,
-          description:
-            "PascalCase or camelCase title that uniquely identifies this prompt template. Used for display and reference purposes.",
-        },
-        description: {
-          type: "string" as const,
-          description:
-            "Detailed explanation (max 200 chars) of the prompt's purpose, behavior, and expected usage. Should be clear and concise.",
-        },
-        static_instruction: {
-          type: "string" as const,
-          description:
-            "Core instruction template that remains constant. Defines the base behavior and rules that don't change between invocations.",
-        },
-        dynamic_instruction: {
-          type: "string" as const,
-          description:
-            "Variable instruction template that can be modified at runtime. Contains placeholders for context-specific information.",
-        },
-        state: {
-          type: "string" as const,
-          description:
-            "JSON-serialized configuration state for the prompt. Stores settings and parameters that affect prompt behavior.",
-        },
-        input_type: {
-          type: "array" as const,
-          items: {
-            type: "string" as const,
-            enum: ["message", "structured_data"],
-          },
-          description:
-            "Array of accepted input formats. 'message' for text, 'structured_data' for JSON. Determines how input is processed.",
-        },
-        output_type: {
-          type: "array" as const,
-          items: {
-            type: "string" as const,
-            enum: ["message", "structured_data"],
-          },
-          description:
-            "Array of supported output formats. 'message' for text, 'structured_data' for JSON. Defines response structure.",
-        },
-      },
-      required: [
-        "title",
-        "description",
-        "static_instruction",
-        "dynamic_instruction",
-        "state",
-        "input_type",
-        "output_type",
-      ],
-    },
-  },
-  {
-    name: "systemprompt_list_resources",
-    description:
-      "Fetches all resources from the systemprompt.io API and returns them in MCP format.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-    },
-  },
-
-  {
-    name: "systemprompt_create_resource",
-    description:
-      "Creates a new resource block that can be referenced by prompts. Resources are reusable content blocks that can be included in multiple prompts. Requires title, description, content, and unique prefix.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        title: {
-          type: "string" as const,
-          description:
-            "PascalCase or camelCase title that uniquely identifies this resource block. Used for display and reference.",
-        },
-        description: {
-          type: "string" as const,
-          description:
-            "Detailed explanation (max 200 chars) of the resource's purpose and intended usage within prompt templates.",
-        },
-        content: {
-          type: "string" as const,
-          description:
-            "The actual content of the resource block. Can contain text, templates, or structured data to be included in prompts.",
-        },
-        prefix: {
-          type: "string" as const,
-          description:
-            "Unique alphanumeric identifier (no spaces/special chars) used to reference this resource within prompt templates.",
-        },
-      },
-      required: ["title", "description", "content", "prefix"],
-    },
-  },
-  {
-    name: "systemprompt_edit_prompt",
-    description:
-      "Modifies an existing prompt template by UUID. Supports partial updates to title, description, instructions, state, and input/output types. Only specified fields will be updated.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        uuid: {
-          type: "string" as const,
-          description:
-            "Unique identifier of the prompt template to modify. Must be a valid UUID of an existing prompt.",
-        },
-        title: {
-          type: "string" as const,
-          description:
-            "New PascalCase or camelCase title for the prompt template. Optional - only updated if specified.",
-        },
-        description: {
-          type: "string" as const,
-          description:
-            "New detailed explanation (max 200 chars) of the prompt's purpose. Optional - only updated if specified.",
-        },
-        static_instruction: {
-          type: "string" as const,
-          description:
-            "New core instruction template. Optional - only updated if specified. Replaces entire static instruction.",
-        },
-        dynamic_instruction: {
-          type: "string" as const,
-          description:
-            "New variable instruction template. Optional - only updated if specified. Replaces entire dynamic instruction.",
-        },
-        state: {
-          type: "string" as const,
-          description:
-            "New JSON-serialized configuration state. Optional - only updated if specified. Replaces entire state object.",
-        },
-        input_type: {
-          type: "array" as const,
-          items: {
-            type: "string" as const,
-            enum: ["message", "structured_data"],
-          },
-          description:
-            "New array of accepted input formats. Optional - only updated if specified. Replaces entire input type array.",
-        },
-        output_type: {
-          type: "array" as const,
-          items: {
-            type: "string" as const,
-            enum: ["message", "structured_data"],
-          },
-          description:
-            "New array of supported output formats. Optional - only updated if specified. Replaces entire output type array.",
-        },
-      },
-      required: ["uuid"],
-    },
-  },
-  {
-    name: "systemprompt_edit_resource",
-    description:
-      "Updates an existing resource block by UUID. Allows modification of title, description, content, and prefix. Supports partial updates where only specified fields are modified.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        uuid: {
-          type: "string" as const,
-          description:
-            "Unique identifier of the resource block to modify. Must be a valid UUID of an existing resource.",
-        },
-        title: {
-          type: "string" as const,
-          description:
-            "New PascalCase or camelCase title for the resource. Optional - only updated if specified.",
-        },
-        description: {
-          type: "string" as const,
-          description:
-            "New detailed explanation (max 200 chars) of the resource's purpose. Optional - only updated if specified.",
-        },
-        content: {
-          type: "string" as const,
-          description:
-            "New content for the resource block. Optional - only updated if specified. Replaces entire content.",
-        },
-        prefix: {
-          type: "string" as const,
-          description:
-            "New unique alphanumeric identifier (no spaces/special chars). Optional - only updated if specified.",
-        },
-      },
-      required: ["uuid"],
-    },
-  },
-  {
-    name: "systemprompt_delete_prompt",
-    description:
-      "Permanently removes a prompt template by its UUID. This action cannot be undone and will remove all associated configurations and mappings.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        uuid: {
-          type: "string" as const,
-          description:
-            "Unique identifier of the prompt template to delete. Must be a valid UUID. Operation cannot be undone.",
-        },
-      },
-      required: ["uuid"],
-    },
-  },
-  {
-    name: "systemprompt_fetch_resource",
-    description:
-      "Retrieves the complete content and metadata of a specific resource block by its UUID. Returns the raw content for use in prompt templates.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        uuid: {
-          type: "string" as const,
-          description:
-            "Unique identifier of the resource block to retrieve. Must be a valid UUID of an existing resource.",
-        },
-      },
-      required: ["uuid"],
-    },
-  },
-  {
-    name: "systemprompt_delete_resource",
-    description:
-      "Permanently removes a resource block by its UUID. This action cannot be undone and will remove the resource from all associated prompts.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        uuid: {
-          type: "string" as const,
-          description:
-            "Unique identifier of the resource block to delete. Must be a valid UUID. Operation cannot be undone.",
-        },
-      },
-      required: ["uuid"],
-    },
-  },
-];
+import { TOOLS } from "../constants/tools.js";
+import { sendSamplingRequest } from "./sampling.js";
+import { handleGetPrompt } from "./prompt-handlers.js";
+import {
+  CREATE_PROMPT_PROMPT,
+  EDIT_PROMPT_PROMPT,
+  CREATE_BLOCK_PROMPT,
+  EDIT_BLOCK_PROMPT,
+  CREATE_AGENT_PROMPT,
+  EDIT_AGENT_PROMPT,
+} from "../constants/sampling-prompts.js";
+import type {
+  SystempromptPromptRequest,
+  SystempromptBlockRequest,
+  SystempromptAgentRequest,
+} from "../types/index.js";
 
 export async function handleListTools(
   request: ListToolsRequest
@@ -321,243 +34,286 @@ export async function handleToolCall(
   try {
     const service = SystemPromptService.getInstance();
     switch (request.params.name) {
-      case "systemprompt_create_prompt": {
-        const args = request.params.arguments as unknown as CreatePromptArgs;
-        const promptData: SystempromptPromptAPIRequest = {
-          metadata: {
-            title: args.title,
-            description: args.description,
-          },
-          instruction: {
-            static: args.static_instruction,
-            dynamic: args.dynamic_instruction,
-            state: args.state,
-          },
-          input: {
-            type: args.input_type,
-            schema: {
-              type: "object",
-              properties: {
-                message: {
-                  type: "string",
-                },
-              },
-            },
-            name: `${args.title}inputSchema`,
-            description: `${args.title}inputDescription`,
-          },
-          output: {
-            type: args.output_type,
-            schema: {
-              type: "object",
-              properties: {
-                message: {
-                  type: "string",
-                },
-              },
-            },
-            name: `${args.title}outputSchema`,
-            description: `${args.title}outputDescription`,
-          },
-        };
-
-        const result = await service.createPrompt(promptData);
-        process.nextTick(async () => {
-          try {
-            await sendPromptChangedNotification();
-          } catch (error) {
-            console.error("Failed to send prompt changed notification:", error);
-          }
-        });
+      case "systemprompt_heartbeat": {
+        const result = await service.fetchUserStatus();
+        const user = result.user;
+        const billing = result.billing;
+        const apiKey = result.api_key;
+        const markdown = [
+          "## API Key",
+          `- **Key**: ${apiKey}`,
+          "",
+          "## User Information",
+          `- **Name**: ${user.name}`,
+          `- **Email**: ${user.email}`,
+          `- **Roles**: ${user.roles.join(", ")}`,
+          "",
+          "## Billing",
+          "### Customer",
+          `- **ID**: ${billing?.customer?.id || "N/A"}`,
+          `- **Email**: ${billing?.customer?.email || "N/A"}`,
+          `- **Status**: ${billing?.customer?.status || "N/A"}`,
+          "",
+          "### Active Subscriptions",
+          ...(billing?.subscription || [])
+            .filter((sub: { status: string }) => sub.status === "active")
+            .map(
+              (sub: {
+                id: string;
+                status: string;
+                currency_code: string;
+                billing_cycle: { frequency: number; interval: string };
+                current_billing_period: { starts_at: string; ends_at: string };
+                items: Array<{
+                  product: { name: string };
+                  price: {
+                    unit_price: { amount: string; currency_code: string };
+                  };
+                }>;
+              }) => [
+                `#### Subscription ${sub.id}`,
+                `- **Status**: ${sub.status}`,
+                `- **Currency**: ${sub.currency_code}`,
+                `- **Billing Cycle**: ${sub.billing_cycle.frequency} ${sub.billing_cycle.interval}`,
+                `- **Current Period**: ${new Date(
+                  sub.current_billing_period.starts_at
+                ).toLocaleDateString()} to ${new Date(
+                  sub.current_billing_period.ends_at
+                ).toLocaleDateString()}`,
+                `- **Product**: ${sub.items[0].product.name}`,
+                `- **Price**: ${
+                  parseInt(sub.items[0].price.unit_price.amount) / 100
+                } ${sub.items[0].price.unit_price.currency_code}`,
+                "",
+              ]
+            )
+            .flat(),
+        ].join("\n");
         return {
-          content: [
-            { type: "text", text: `Created prompt: ${result.metadata.title}` },
-          ],
+          content: [{ type: "text", text: markdown }],
         };
       }
-
-      case "systemprompt_edit_prompt": {
-        const args = request.params.arguments as unknown as EditPromptArgs;
-        const updateData: Partial<SystempromptPromptRequest> = {};
-
-        if (args.title || args.description) {
-          updateData.metadata = {
-            title: args.title || "",
-            description: args.description || "",
-          };
-        }
-
-        if (args.static_instruction) {
-          updateData.instruction = {
-            static: args.static_instruction,
-          };
-        }
-
-        if (args.input_type) {
-          updateData.input = {
-            type: args.input_type,
-          };
-        }
-
-        if (args.output_type) {
-          updateData.output = {
-            type: args.output_type,
-          };
-        }
-
-        const result = await service.editPrompt(args.uuid, updateData);
-        process.nextTick(async () => {
-          try {
-            await sendPromptChangedNotification();
-          } catch (error) {
-            console.error("Failed to send prompt changed notification:", error);
-          }
-        });
-        return {
-          content: [
-            { type: "text", text: `Updated prompt: ${result.metadata.title}` },
-          ],
-        };
-      }
-
-      case "systemprompt_create_resource": {
-        const args = request.params.arguments as unknown as CreateResourceArgs;
-        const blockData: SystempromptBlockRequest = {
-          content: args.content,
-          prefix: args.prefix,
-          metadata: {
-            title: args.title,
-            description: args.description,
-          },
-        };
-
-        const result = await service.createBlock(blockData);
-        process.nextTick(async () => {
-          try {
-            await sendResourceChangedNotification();
-          } catch (error) {
-            console.error(
-              "Failed to send resource changed notification:",
-              error
-            );
-          }
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Created resource: ${result.metadata.title}`,
-            },
-          ],
-        };
-      }
-
-      case "systemprompt_edit_resource": {
-        const args = request.params.arguments as unknown as EditResourceArgs;
-        const updateData: Partial<SystempromptBlockRequest> = {};
-
-        if (args.title || args.description) {
-          updateData.metadata = {
-            title: args.title || "",
-            description: args.description || "",
-          };
-        }
-
-        if (args.content) {
-          updateData.content = args.content;
-        }
-
-        if (args.prefix) {
-          updateData.prefix = args.prefix;
-        }
-
-        const result = await service.editBlock(args.uuid, updateData);
-        process.nextTick(async () => {
-          try {
-            await sendResourceChangedNotification();
-          } catch (error) {
-            console.error(
-              "Failed to send resource changed notification:",
-              error
-            );
-          }
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Updated resource: ${result.metadata.title}`,
-            },
-          ],
-        };
-      }
-
-      case "systemprompt_fetch_resource": {
-        const args = request.params.arguments as unknown as FetchResourceArgs;
-        const result = await service.getBlock(args.uuid);
-        return {
-          content: [
-            {
-              type: "resource",
-              resource: {
-                uri: `resource:///block/${args.uuid}`,
-                text: result.content,
-              },
-            },
-          ],
-        };
-      }
-
-      case "systemprompt_delete_prompt": {
-        const args = request.params.arguments as unknown as DeleteArgs;
-        await service.deletePrompt(args.uuid);
-        process.nextTick(async () => {
-          try {
-            await sendPromptChangedNotification();
-          } catch (error) {
-            console.error("Failed to send prompt changed notification:", error);
-          }
-        });
-        return {
-          content: [{ type: "text", text: "Deleted prompt" }],
-        };
-      }
-
-      case "systemprompt_delete_resource": {
-        const args = request.params.arguments as unknown as DeleteArgs;
-        await service.deleteBlock(args.uuid);
-
-        process.nextTick(() => {
-          sendResourceChangedNotification().catch((error) => {
-            console.error(
-              "Failed to send resource changed notification:",
-              error
-            );
-          });
-        });
-
-        return {
-          content: [{ type: "text", text: "Deleted resource" }],
-        };
-      }
-
-      case "systemprompt_list_resources": {
-        const service = SystemPromptService.getInstance();
+      case "systemprompt_fetch_resources": {
+        const prompts = await service.getAllPrompts();
         const blocks = await service.listBlocks();
+        const agents = await service.listAgents();
+
+        const markdown = [
+          "## Agents",
+          ...agents
+            .map((agent) => [
+              `#### ${agent.metadata.title}`,
+              `- **ID**: ${agent.id}`,
+              `- **Description**: ${agent.metadata.description || "N/A"}`,
+              "",
+            ])
+            .flat(),
+          "",
+          "### Prompts",
+          ...prompts
+            .map((prompt) => [
+              `#### ${prompt.metadata.title}`,
+              `- **ID**: ${prompt.id}`,
+              `- **Description**: ${prompt.metadata.description || "N/A"}`,
+              "",
+            ])
+            .flat(),
+          "",
+          "### Resources",
+          ...blocks
+            .map((block) => [
+              `#### ${block.metadata.title}`,
+              `- **ID**: ${block.id}`,
+              `- **Description**: ${block.metadata.description || "N/A"}`,
+              "",
+            ])
+            .flat(),
+        ].join("\n");
+
         return {
-          content: blocks.map((block) => ({
-            type: "resource" as const,
-            resource: {
-              uri: `resource:///block/${block.id}`,
-              text: block.content,
-              mimeType: "text/plain",
-            },
-          })),
+          content: [{ type: "text", text: markdown }],
         };
       }
+      case "systemprompt_create_resource": {
+        const { type, userInstructions } = request.params.arguments as {
+          type?: "prompt" | "block" | "agent";
+          userInstructions?: string;
+        };
+        if (!type || !userInstructions) {
+          throw new Error(
+            "Tool call failed: Missing required parameters - type and userInstructions are required"
+          );
+        }
 
-      default:
+        // Get the appropriate prompt based on resource type
+        const promptMap = {
+          prompt: CREATE_PROMPT_PROMPT,
+          block: CREATE_BLOCK_PROMPT,
+          agent: CREATE_AGENT_PROMPT,
+        } as const;
+        const selectedPrompt = promptMap[type];
+        if (!selectedPrompt) {
+          throw new Error(`Invalid resource type: ${type}`);
+        }
+
+        // Get the prompt with user instructions
+        const prompt = await handleGetPrompt({
+          method: "prompts/get",
+          params: {
+            name: selectedPrompt.name,
+            arguments: { userInstructions },
+          },
+        });
+
+        // Send sampling request
+        const result = await sendSamplingRequest({
+          method: "sampling/createMessage",
+          params: {
+            messages: prompt.messages as Array<{
+              role: "user" | "assistant";
+              content: { type: "text"; text: string };
+            }>,
+            maxTokens: 100000,
+            temperature: 0.7,
+            _meta: prompt._meta,
+            arguments: { userInstructions },
+          },
+        });
+
+        // Parse the response
+        const content = result.content[0];
+        if (
+          !content ||
+          typeof content !== "object" ||
+          !("type" in content) ||
+          !("text" in content) ||
+          content.type !== "text" ||
+          typeof content.text !== "string"
+        ) {
+          throw new Error("Expected text content from sampling request");
+        }
+        const resourceData = JSON.parse(content.text);
+
+        // Create the resource based on type
+        const createdResource = await service.createPrompt(
+          resourceData as SystempromptPromptRequest
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Successfully created ${type} ${createdResource.id}`,
+            },
+          ],
+        };
+      }
+      case "systemprompt_update_resource": {
+        const { id, type, userInstructions } = request.params.arguments as {
+          id?: string;
+          type?: "prompt" | "block" | "agent";
+          userInstructions?: string;
+        };
+        if (!id || !type || !userInstructions) {
+          throw new Error(
+            "Tool call failed: Missing required parameters - id, type and userInstructions are required"
+          );
+        }
+
+        // Get the appropriate prompt based on resource type
+        const promptMap = {
+          prompt: EDIT_PROMPT_PROMPT,
+          block: EDIT_BLOCK_PROMPT,
+          agent: EDIT_AGENT_PROMPT,
+        } as const;
+        const selectedPrompt = promptMap[type];
+        if (!selectedPrompt) {
+          throw new Error(`Invalid resource type: ${type}`);
+        }
+
+        // Get the prompt with user instructions
+        const prompt = await handleGetPrompt({
+          method: "prompts/get",
+          params: {
+            name: selectedPrompt.name,
+            arguments: { userInstructions },
+          },
+        });
+
+        // Send sampling request
+        const result = await sendSamplingRequest({
+          method: "sampling/createMessage",
+          params: {
+            messages: prompt.messages as Array<{
+              role: "user" | "assistant";
+              content: { type: "text"; text: string };
+            }>,
+            maxTokens: 100000,
+            temperature: 0.7,
+            _meta: prompt._meta,
+            arguments: { userInstructions },
+          },
+        });
+
+        // Parse the response
+        const content = result.content[0];
+        if (
+          !content ||
+          typeof content !== "object" ||
+          !("type" in content) ||
+          !("text" in content) ||
+          content.type !== "text" ||
+          typeof content.text !== "string"
+        ) {
+          throw new Error("Expected text content from sampling request");
+        }
+        const resourceData = JSON.parse(content.text);
+
+        // Update the resource based on type
+        const updatedResource = await service.editPrompt(
+          id,
+          resourceData as SystempromptPromptRequest
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Successfully updated ${type} ${updatedResource.id}`,
+            },
+          ],
+        };
+      }
+      case "systemprompt_delete_resource": {
+        const params = request.params.arguments as { id: string };
+        const { id } = params;
+        if (!id) {
+          throw new Error("ID is required for deleting a resource");
+        }
+
+        try {
+          await service.deletePrompt(id);
+          return {
+            content: [
+              { type: "text", text: `Successfully deleted prompt ${id}` },
+            ],
+          };
+        } catch {
+          try {
+            await service.deleteBlock(id);
+            return {
+              content: [
+                { type: "text", text: `Successfully deleted block ${id}` },
+              ],
+            };
+          } catch {
+            throw new Error(`Failed to delete resource with ID ${id}`);
+          }
+        }
+      }
+      default: {
         throw new Error(`Unknown tool: ${request.params.name}`);
+      }
     }
   } catch (error: any) {
     console.error("Tool call failed:", error);

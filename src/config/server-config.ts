@@ -29,5 +29,6 @@ export const serverCapabilities: { capabilities: ServerCapabilities } = {
     prompts: {
       listChanged: true,
     },
+    sampling: {},
   },
 };

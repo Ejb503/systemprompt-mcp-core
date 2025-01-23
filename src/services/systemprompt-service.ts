@@ -3,6 +3,9 @@ import type {
   SystempromptPromptRequest,
   SystempromptBlockResponse,
   SystempromptPromptResponse,
+  SystempromptUserStatusResponse,
+  SystempromptAgentResponse,
+  SystempromptAgentRequest,
 } from "../types/index.js";
 
 export class SystemPromptService {
@@ -35,28 +38,44 @@ export class SystemPromptService {
     SystemPromptService.instance = null;
   }
 
-  private async request<T>(
-    endpoint: string,
+  private async fetch(
     method: string,
-    data?: any
+    path: string,
+    body?: unknown
+  ): Promise<Response> {
+    const url = new URL(path, this.baseUrl).toString();
+    return fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": this.apiKey,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown
   ): Promise<T> {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const url = `${this.baseUrl}${path}`;
+      const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
           "api-key": this.apiKey,
         },
-        body: data ? JSON.stringify(data) : undefined,
+        body: body ? JSON.stringify(body) : undefined,
       });
 
-      let responseData;
-      if (response.status !== 204) {
-        try {
-          responseData = await response.json();
-        } catch (e) {
-          throw new Error("Failed to parse API response");
-        }
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch (error) {
+        throw new Error("Failed to parse API response");
       }
 
       if (!response.ok) {
@@ -68,20 +87,22 @@ export class SystemPromptService {
           case 409:
             throw new Error("Resource conflict - it may have been edited");
           case 400:
-            throw new Error(
-              responseData.message || "Invalid request parameters"
-            );
+            throw new Error("Invalid data");
           default:
-            throw new Error(
-              responseData?.message ||
-                `API request failed with status ${response.status}`
-            );
+            throw new Error(data?.message || "API request failed");
         }
       }
 
-      return responseData as T;
-    } catch (error: any) {
-      if (error.message) {
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      return data as T;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Failed to fetch") {
+          throw new Error("API request failed");
+        }
         throw error;
       }
       throw new Error("API request failed");
@@ -89,13 +110,13 @@ export class SystemPromptService {
   }
 
   async getAllPrompts(): Promise<SystempromptPromptResponse[]> {
-    return this.request<SystempromptPromptResponse[]>("/prompt", "GET");
+    return this.request<SystempromptPromptResponse[]>("GET", "/prompt");
   }
 
   async createPrompt(
     data: SystempromptPromptRequest
   ): Promise<SystempromptPromptResponse> {
-    return this.request<SystempromptPromptResponse>("/prompt", "POST", data);
+    return this.request<SystempromptPromptResponse>("POST", "/prompt", data);
   }
 
   async editPrompt(
@@ -103,16 +124,20 @@ export class SystemPromptService {
     data: Partial<SystempromptPromptRequest>
   ): Promise<SystempromptPromptResponse> {
     return this.request<SystempromptPromptResponse>(
-      `/prompt/${uuid}`,
       "PUT",
+      `/prompt/${uuid}`,
       data
     );
+  }
+
+  async deletePrompt(uuid: string): Promise<void> {
+    return this.request<void>("DELETE", `/prompt/${uuid}`);
   }
 
   async createBlock(
     data: SystempromptBlockRequest
   ): Promise<SystempromptBlockResponse> {
-    return this.request<SystempromptBlockResponse>("/block", "POST", data);
+    return this.request<SystempromptBlockResponse>("POST", "/block", data);
   }
 
   async editBlock(
@@ -120,25 +145,46 @@ export class SystemPromptService {
     data: Partial<SystempromptBlockRequest>
   ): Promise<SystempromptBlockResponse> {
     return this.request<SystempromptBlockResponse>(
-      `/block/${uuid}`,
       "PUT",
+      `/block/${uuid}`,
       data
     );
   }
 
   async listBlocks(): Promise<SystempromptBlockResponse[]> {
-    return this.request<SystempromptBlockResponse[]>("/block", "GET");
+    return this.request<SystempromptBlockResponse[]>("GET", "/block");
   }
 
   async getBlock(blockId: string): Promise<SystempromptBlockResponse> {
-    return this.request<SystempromptBlockResponse>(`/block/${blockId}`, "GET");
+    return this.request<SystempromptBlockResponse>("GET", `/block/${blockId}`);
   }
 
-  async deletePrompt(uuid: string): Promise<void> {
-    return this.request<void>(`/prompt/${uuid}`, "DELETE");
+  async listAgents(): Promise<SystempromptAgentResponse[]> {
+    return this.request<SystempromptAgentResponse[]>("GET", "/agent");
+  }
+
+  async createAgent(
+    data: SystempromptAgentRequest
+  ): Promise<SystempromptAgentResponse> {
+    return this.request<SystempromptAgentResponse>("POST", "/agent", data);
+  }
+
+  async editAgent(
+    uuid: string,
+    data: Partial<SystempromptAgentRequest>
+  ): Promise<SystempromptAgentResponse> {
+    return this.request<SystempromptAgentResponse>(
+      "PUT",
+      `/agent/${uuid}`,
+      data
+    );
   }
 
   async deleteBlock(uuid: string): Promise<void> {
-    return this.request<void>(`/block/${uuid}`, "DELETE");
+    return this.request<void>("DELETE", `/block/${uuid}`);
+  }
+
+  async fetchUserStatus(): Promise<SystempromptUserStatusResponse> {
+    return this.request<SystempromptUserStatusResponse>("GET", "/user/mcp");
   }
 }

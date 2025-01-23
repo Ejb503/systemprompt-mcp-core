@@ -1,46 +1,40 @@
-/**
- * Jest configuration for TypeScript ESM project
- * @type {import('@jest/types').Config.InitialOptions}
- */
-const config = {
-  // Use ts-jest
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+export default {
   preset: "ts-jest",
   testEnvironment: "node",
-
-  // TypeScript configuration
+  extensionsToTreatAsEsm: [".ts", ".mts"],
+  moduleNameMapper: {
+    "(.+)\\.js": "$1",
+    "^@modelcontextprotocol/sdk$":
+      "<rootDir>/src/__mocks__/@modelcontextprotocol/sdk.ts",
+    "^@modelcontextprotocol/sdk/server/stdio$":
+      "<rootDir>/src/__mocks__/@modelcontextprotocol/sdk.ts",
+    "^@modelcontextprotocol/sdk/server$":
+      "<rootDir>/src/__mocks__/@modelcontextprotocol/sdk.ts",
+    "^node:process$": "<rootDir>/src/__mocks__/node_process.ts",
+  },
   transform: {
-    "^.+\\.tsx?$": [
+    "^.+\\.ts$": [
       "ts-jest",
       {
-        tsconfig: "tsconfig.test.json",
+        tsconfig: "tsconfig.json",
+        useESM: true,
+      },
+    ],
+    "^.+\\.js$": [
+      "babel-jest",
+      {
+        presets: [["@babel/preset-env", { targets: { node: "current" } }]],
       },
     ],
   },
-
-  // Module resolution
-  moduleDirectories: ["node_modules", "src"],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-  moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/src/$1",
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-  },
-
-  // Test setup and patterns
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-  testMatch: ["**/__tests__/**/*.test.ts", "**/*.test.ts"],
-
-  // Coverage configuration
-  coveragePathIgnorePatterns: [
-    "/node_modules/",
-    "/build/",
-    "/__tests__/",
-    "/__mocks__/",
+  transformIgnorePatterns: [],
+  testMatch: ["**/__tests__/**/*.test.ts"],
+  collectCoverage: true,
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/**/*.d.ts",
+    "!src/types/**/*",
   ],
-
-  // Mock behavior
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
 };
-
-export default config;

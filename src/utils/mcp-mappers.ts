@@ -7,7 +7,7 @@ import {
 import type {
   SystempromptPromptResponse,
   SystempromptBlockResponse,
-} from "../types/index.js";
+} from "../types/systemprompt.js";
 
 /**
  * Maps input schema properties to MCP argument format.
@@ -37,7 +37,7 @@ export function mapPromptToGetPromptResult(
 ): GetPromptResult {
   return {
     name: prompt.metadata.title,
-    description: prompt.metadata.description,
+    description: prompt.metadata.description || undefined,
     messages: [
       {
         role: "assistant",
@@ -64,7 +64,7 @@ export function mapPromptsToListPromptsResult(
     _meta: { prompts },
     prompts: prompts.map((prompt) => ({
       name: prompt.metadata.title,
-      description: prompt.metadata.description,
+      description: prompt.metadata.description || undefined,
       arguments: [],
     })),
   };

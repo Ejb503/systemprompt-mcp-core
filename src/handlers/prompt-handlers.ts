@@ -9,14 +9,18 @@ import {
   mapPromptToGetPromptResult,
   mapPromptsToListPromptsResult,
 } from "../utils/mcp-mappers.js";
+import { SYSTEMPROMPT_PROMPTS } from "../constants/sampling-prompts.js";
 
 export async function handleListPrompts(
   request: ListPromptsRequest
 ): Promise<ListPromptsResult> {
   try {
     const service = SystemPromptService.getInstance();
-    const prompts = await service.getAllPrompts();
-    return mapPromptsToListPromptsResult(prompts);
+    const remotePrompts = await service.getAllPrompts();
+    const allPrompts = mapPromptsToListPromptsResult(remotePrompts);
+    allPrompts.prompts = allPrompts.prompts.concat(SYSTEMPROMPT_PROMPTS);
+
+    return allPrompts;
   } catch (error: any) {
     console.error("Failed to fetch prompts:", error);
     throw new Error("Failed to fetch prompts from systemprompt.io");
@@ -28,10 +32,13 @@ export async function handleGetPrompt(
 ): Promise<GetPromptResult> {
   try {
     const service = SystemPromptService.getInstance();
-    const prompts = await service.getAllPrompts();
-    const prompt = prompts.find(
-      (p) => p.metadata.title === request.params.name
+    const remotePrompts = await service.getAllPrompts();
+    const mappedRemotePrompts = remotePrompts.map((i) =>
+      mapPromptToGetPromptResult(i)
     );
+
+    const allPrompts = [...mappedRemotePrompts, ...SYSTEMPROMPT_PROMPTS];
+    const prompt = allPrompts.find((p) => p.name === request.params.name);
 
     if (!prompt) {
       throw new Error(`Prompt not found: ${request.params.name}`);
@@ -39,8 +46,7 @@ export async function handleGetPrompt(
 
     return {
       _meta: { prompt },
-      tools: [],
-      ...mapPromptToGetPromptResult(prompt),
+      ...prompt,
     };
   } catch (error: any) {
     console.error("Failed to fetch prompt:", error);

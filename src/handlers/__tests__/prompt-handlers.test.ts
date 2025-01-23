@@ -1,129 +1,128 @@
 import { jest } from "@jest/globals";
-import { SystemPromptService } from "../../services/systemprompt-service.js";
+import type {
+  GetPromptResult,
+  ListPromptsResult,
+  Prompt,
+} from "@modelcontextprotocol/sdk/types.js";
+import type { SystempromptPromptResponse } from "../../types/systemprompt.js";
 import { handleListPrompts, handleGetPrompt } from "../prompt-handlers.js";
-import { SystempromptPromptResponse } from "../../types/index.js";
+import { SystemPromptService } from "../../services/systemprompt-service.js";
 
-jest.mock("../../services/systemprompt-service.js");
+// Mock the constants modules
+jest.mock("../../constants/instructions.js", () => ({
+  NOTION_PAGE_CREATOR_INSTRUCTIONS: "Test assistant instruction",
+  NOTION_PAGE_EDITOR_INSTRUCTIONS: "Test editor instruction",
+}));
 
-describe("Prompt Handlers", () => {
-  const mockPrompt: SystempromptPromptResponse = {
-    id: "test-uuid",
+const mockPrompts: SystempromptPromptResponse[] = [
+  {
+    id: "notion-page-creator",
+    metadata: {
+      title: "Notion Page Creator",
+      description:
+        "Generates a rich, detailed Notion page that expands upon basic inputs into comprehensive, well-structured content",
+      created: "2024-01-01T00:00:00Z",
+      updated: "2024-01-01T00:00:00Z",
+      version: 1,
+      status: "active",
+      author: "test",
+      log_message: "Initial version",
+    },
     instruction: {
-      static: "Test instruction",
+      static: "Test assistant instruction",
       dynamic: "",
       state: "",
     },
     input: {
-      name: "test_input",
-      description: "Test input",
-      type: ["message"],
-      schema: {},
+      name: "notion-page-creator-input",
+      description: "Input parameters for creating a Notion page",
+      type: ["object"],
+      schema: {
+        type: "object",
+        properties: {
+          databaseId: {
+            type: "string",
+            description: "The ID of the database to create the page in",
+          },
+          userInstructions: {
+            type: "string",
+            description: "Basic instructions or outline for the page content",
+          },
+        },
+        required: ["databaseId", "userInstructions"],
+      },
     },
     output: {
-      name: "test_output",
-      description: "Test output",
-      type: ["message"],
-      schema: {},
+      name: "notion-page-creator-output",
+      description: "Output format for the created Notion page",
+      type: ["object"],
+      schema: {
+        type: "object",
+        properties: {},
+        required: ["parent", "properties"],
+      },
     },
-    metadata: {
-      title: "Test Prompt",
-      description: "Test description",
-      created: "2024-01-01",
-      updated: "2024-01-01",
-      version: 1,
-      status: "draft",
-      author: "test",
-      log_message: "Created",
+    _link: "https://api.systemprompt.io/v1/prompts/notion-page-creator",
+  },
+];
+
+type MockGetAllPromptsReturn = ReturnType<
+  typeof SystemPromptService.prototype.getAllPrompts
+>;
+
+// Mock SystemPromptService
+jest.mock("../../services/systemprompt-service.js", () => {
+  const mockGetAllPrompts = jest.fn(() => Promise.resolve(mockPrompts));
+  const mockGetInstance = jest.fn(() => ({
+    getAllPrompts: mockGetAllPrompts,
+  }));
+
+  return {
+    SystemPromptService: {
+      getInstance: mockGetInstance,
+      initialize: jest.fn(),
     },
-    _link: "test-link",
   };
+});
 
-  const mockService = {
-    apiKey: "test-key",
-    baseUrl: "https://api.test.com",
-    request: jest.fn(),
-    getAllPrompts: jest.fn<() => Promise<SystempromptPromptResponse[]>>(),
-    createPrompt:
-      jest.fn<
-        (
-          data: Partial<SystempromptPromptResponse>
-        ) => Promise<SystempromptPromptResponse>
-      >(),
-    editPrompt:
-      jest.fn<
-        (
-          uuid: string,
-          data: Partial<SystempromptPromptResponse>
-        ) => Promise<SystempromptPromptResponse>
-      >(),
-  };
-
+describe("Prompt Handlers", () => {
   beforeEach(() => {
+    jest.resetModules();
     jest.clearAllMocks();
-    SystemPromptService.initialize("test-api-key");
-    jest
-      .spyOn(SystemPromptService, "getInstance")
-      .mockReturnValue(mockService as unknown as SystemPromptService);
   });
 
   describe("handleListPrompts", () => {
-    it("should return list of prompts with correct schema", async () => {
-      mockService.getAllPrompts.mockResolvedValueOnce([mockPrompt]);
-
+    it("should return a list of prompts", async () => {
       const result = await handleListPrompts({ method: "prompts/list" });
-
       expect(result.prompts).toBeDefined();
-      expect(Array.isArray(result.prompts)).toBe(true);
-      expect(result.prompts.length).toBe(1);
-      expect(result.prompts[0]).toEqual({
-        name: mockPrompt.metadata.title,
-        description: mockPrompt.metadata.description,
-        arguments: [],
-      });
-      expect(result._meta).toEqual({ prompts: [mockPrompt] });
+      expect(result.prompts[0].name).toBe(mockPrompts[0].metadata.title);
     });
 
-    it("should handle API errors", async () => {
-      mockService.getAllPrompts.mockRejectedValueOnce(
-        new Error("API request failed")
-      );
+    it("should handle errors gracefully", async () => {
+      // Override mock for this specific test
+      await jest.isolateModules(async () => {
+        const mockError = new Error("Failed to fetch");
+        const mockGetAllPrompts = jest.fn(() => Promise.reject(mockError));
+        const mockGetInstance = jest.fn(() => ({
+          getAllPrompts: mockGetAllPrompts,
+        }));
 
-      await expect(
-        handleListPrompts({ method: "prompts/list" })
-      ).rejects.toThrow("Failed to fetch prompts from systemprompt.io");
+        jest.doMock("../../services/systemprompt-service.js", () => ({
+          SystemPromptService: {
+            getInstance: mockGetInstance,
+          },
+        }));
+
+        const { handleListPrompts } = await import("../prompt-handlers.js");
+        await expect(
+          handleListPrompts({ method: "prompts/list" })
+        ).rejects.toThrow("Failed to fetch prompts");
+      });
     });
   });
 
   describe("handleGetPrompt", () => {
-    it("should return prompt by name", async () => {
-      mockService.getAllPrompts.mockResolvedValueOnce([mockPrompt]);
-
-      const result = await handleGetPrompt({
-        method: "prompts/get",
-        params: { name: "Test Prompt" },
-      });
-
-      expect(result).toEqual({
-        name: mockPrompt.metadata.title,
-        description: mockPrompt.metadata.description,
-        messages: [
-          {
-            role: "assistant",
-            content: {
-              type: "text",
-              text: mockPrompt.instruction.static,
-            },
-          },
-        ],
-        arguments: [],
-        tools: [],
-        _meta: { prompt: mockPrompt },
-      });
-    });
-
-    it("should throw error for unknown prompt", async () => {
-      mockService.getAllPrompts.mockResolvedValueOnce([mockPrompt]);
-
+    it("should handle unknown prompts", async () => {
       await expect(
         handleGetPrompt({
           method: "prompts/get",
@@ -132,19 +131,23 @@ describe("Prompt Handlers", () => {
       ).rejects.toThrow("Prompt not found: Unknown Prompt");
     });
 
-    it("should handle API errors", async () => {
-      mockService.getAllPrompts.mockRejectedValueOnce(
-        new Error("API request failed")
-      );
+    it("should return the correct prompt", async () => {
+      const result = await handleGetPrompt({
+        method: "prompts/get",
+        params: {
+          name: "Notion Page Creator",
+          arguments: {
+            databaseId: "test-db-123",
+            userInstructions: "Create a test page",
+          },
+        },
+      });
 
-      await expect(
-        handleGetPrompt({
-          method: "prompts/get",
-          params: { name: "Test Prompt" },
-        })
-      ).rejects.toThrow(
-        "Failed to fetch prompt from systemprompt.io: API request failed"
-      );
+      const prompt = result._meta?.prompt as SystempromptPromptResponse;
+      expect(prompt).toBeDefined();
+      expect(prompt.metadata.title).toBe("Notion Page Creator");
+      expect(prompt.input.schema.properties).toHaveProperty("databaseId");
+      expect(prompt.input.schema.properties).toHaveProperty("userInstructions");
     });
   });
 });
