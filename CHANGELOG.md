@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.19] - 2025-01-23
+
+### Fixed
+
+- Fixed validation errors with ajv
+
 All notable changes to this project will be documented in this file.
 
 ## [1.0.18] - 2025-01-23
