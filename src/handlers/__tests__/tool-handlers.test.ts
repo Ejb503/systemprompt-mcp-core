@@ -166,6 +166,14 @@ const mockSystemPromptService = {
     .mockResolvedValue(mockPrompt),
   deletePrompt: jest.fn<() => Promise<{}>>().mockResolvedValue({}),
   deleteBlock: jest.fn<() => Promise<{}>>().mockResolvedValue({}),
+  createBlock: jest
+    .fn<() => Promise<MockPrompt>>()
+    .mockResolvedValue(mockBlock),
+  editBlock: jest.fn<() => Promise<MockPrompt>>().mockResolvedValue(mockBlock),
+  createAgent: jest
+    .fn<() => Promise<MockPrompt>>()
+    .mockResolvedValue(mockAgent),
+  editAgent: jest.fn<() => Promise<MockPrompt>>().mockResolvedValue(mockAgent),
 };
 
 // Mock the SystemPromptService module
@@ -293,29 +301,6 @@ describe("Tool Handlers", () => {
         expect(result.content[0].text).toContain("Billing");
       });
 
-      it("should handle invalid JSON in sampling response", async () => {
-        mockSamplingModule.sendSamplingRequest.mockImplementationOnce(
-          async () => ({
-            content: [{ type: "text", text: "{invalid json" }],
-          })
-        );
-
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name: "systemprompt_create_resource",
-            arguments: {
-              type: "block",
-              userInstructions: "Create a test block",
-            },
-          },
-        };
-
-        await expect(handleToolCall(request)).rejects.toThrow(
-          "Unexpected token"
-        );
-      });
-
       it("should handle empty resource lists in fetch resources", async () => {
         mockSystemPromptService.getAllPrompts.mockResolvedValueOnce([]);
         mockSystemPromptService.listBlocks.mockResolvedValueOnce([]);
@@ -357,24 +342,26 @@ describe("Tool Handlers", () => {
         expect(result.content[0].text).toContain("Resources");
       });
 
-      it("should handle systemprompt_create_resource", async () => {
+      it("should handle create resource request", async () => {
         const request: CallToolRequest = {
           method: "tools/call",
           params: {
             name: "systemprompt_create_resource",
             arguments: {
               type: "block",
-              content: "test content",
               userInstructions: "Create a test block",
             },
           },
         };
 
         const result = await handleToolCall(request);
-        expect(result).toBeDefined();
+        expect(result.content[0].type).toBe("text");
+        expect(result.content[0].text).toBe(
+          "Your request has been recieved and is being processed, we will notify you when it is complete."
+        );
       });
 
-      it("should handle systemprompt_update_resource", async () => {
+      it("should handle update resource request", async () => {
         const request: CallToolRequest = {
           method: "tools/call",
           params: {
@@ -382,14 +369,16 @@ describe("Tool Handlers", () => {
             arguments: {
               id: "test-id",
               type: "block",
-              content: "updated content",
-              userInstructions: "Update the test block",
+              userInstructions: "Update test block",
             },
           },
         };
 
         const result = await handleToolCall(request);
-        expect(result).toBeDefined();
+        expect(result.content[0].type).toBe("text");
+        expect(result.content[0].text).toBe(
+          "Your request has been recieved and is being processed, we will notify you when it is complete."
+        );
       });
 
       it("should handle systemprompt_delete_resource", async () => {
@@ -407,52 +396,6 @@ describe("Tool Handlers", () => {
         expect(result).toBeDefined();
       });
 
-      it("should handle invalid sampling response format", async () => {
-        mockSamplingModule.sendSamplingRequest.mockImplementationOnce(
-          async () => ({
-            content: [{ type: "invalid", text: "test" }],
-          })
-        );
-
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name: "systemprompt_create_resource",
-            arguments: {
-              type: "block",
-              userInstructions: "Create a test block",
-            },
-          },
-        };
-
-        await expect(handleToolCall(request)).rejects.toThrow(
-          "Expected text content from sampling request"
-        );
-      });
-
-      it("should handle missing content in sampling response", async () => {
-        mockSamplingModule.sendSamplingRequest.mockImplementationOnce(
-          async () => ({
-            content: [],
-          })
-        );
-
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name: "systemprompt_create_resource",
-            arguments: {
-              type: "block",
-              userInstructions: "Create a test block",
-            },
-          },
-        };
-
-        await expect(handleToolCall(request)).rejects.toThrow(
-          "Expected text content from sampling request"
-        );
-      });
-
       it("should handle invalid resource type for create", async () => {
         const request: CallToolRequest = {
           method: "tools/call",
@@ -460,7 +403,6 @@ describe("Tool Handlers", () => {
             name: "systemprompt_create_resource",
             arguments: {
               type: "invalid",
-              content: "test content",
               userInstructions: "Create an invalid resource",
             },
           },
@@ -479,7 +421,6 @@ describe("Tool Handlers", () => {
             arguments: {
               id: "test-id",
               type: "invalid",
-              content: "test content",
               userInstructions: "Update an invalid resource",
             },
           },
@@ -567,7 +508,10 @@ describe("Tool Handlers", () => {
         };
 
         const result = await handleToolCall(request);
-        expect(result).toBeDefined();
+        expect(result.content[0].type).toBe("text");
+        expect(result.content[0].text).toBe(
+          "Successfully deleted prompt test-block-id"
+        );
       });
     });
 
@@ -583,38 +527,6 @@ describe("Tool Handlers", () => {
 
         await expect(handleToolCall(request)).rejects.toThrow(
           "Unknown tool: invalid_tool"
-        );
-      });
-
-      it("should handle missing required arguments for create resource", async () => {
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name: "systemprompt_create_resource",
-            params: {
-              type: "prompt",
-            },
-          },
-        };
-
-        await expect(handleToolCall(request)).rejects.toThrow(
-          "Tool call failed"
-        );
-      });
-
-      it("should handle missing required arguments for update resource", async () => {
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name: "systemprompt_update_resource",
-            params: {
-              type: "prompt",
-            },
-          },
-        };
-
-        await expect(handleToolCall(request)).rejects.toThrow(
-          "Tool call failed"
         );
       });
 

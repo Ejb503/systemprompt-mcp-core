@@ -30,5 +30,6 @@ export const serverCapabilities: { capabilities: ServerCapabilities } = {
       listChanged: true,
     },
     sampling: {},
+    logging: {},
   },
 };

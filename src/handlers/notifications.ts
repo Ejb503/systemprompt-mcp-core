@@ -1,6 +1,7 @@
 import {
   PromptListChangedNotification,
   ResourceListChangedNotification,
+  ServerNotification,
 } from "@modelcontextprotocol/sdk/types.js";
 import { SystemPromptService } from "../services/systemprompt-service.js";
 import {
@@ -29,8 +30,22 @@ export async function sendResourceChangedNotification(): Promise<void> {
   await sendNotification(notification);
 }
 
-async function sendNotification(
-  notification: PromptListChangedNotification | ResourceListChangedNotification
-) {
+export async function sendOperationNotification(
+  operation: string,
+  message: string
+): Promise<void> {
+  const notification: ServerNotification = {
+    method: "notifications/message",
+    params: {
+      _meta: {},
+      message: `Operation ${operation}: ${message}`,
+      level: "info",
+      timestamp: new Date().toISOString(),
+    },
+  };
+  await sendNotification(notification);
+}
+
+async function sendNotification(notification: ServerNotification) {
   await server.notification(notification);
 }

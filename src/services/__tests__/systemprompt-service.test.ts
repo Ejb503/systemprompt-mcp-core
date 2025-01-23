@@ -239,10 +239,9 @@ describe("SystemPromptService", () => {
           status: "active",
           author: "test",
           log_message: "test",
+          tag: ["test"],
         },
         instruction: { static: "Test instruction" },
-        input: { type: ["text"] },
-        output: { type: ["text"] },
       };
       await expect(service.createPrompt(invalidData)).rejects.toThrow(
         "Invalid data"

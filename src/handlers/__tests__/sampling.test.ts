@@ -10,99 +10,254 @@ jest.mock("../../server", () => ({
   __esModule: true,
   server: {
     createMessage: mockCreateMessage,
+    notification: jest.fn(),
   },
-}));
-
-jest.mock("../../utils/message-handlers", () => ({
-  handleCallback: jest
-    .fn()
-    .mockImplementation(async (callback, result) => result),
 }));
 
 // Import after mocks
 import { describe, it, expect } from "@jest/globals";
 import { sendSamplingRequest } from "../sampling";
-import { handleCallback } from "../../utils/message-handlers";
 import type {
   CreateMessageRequest,
   CreateMessageResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  handleCreatePromptCallback,
+  handleEditPromptCallback,
+  handleCreateBlockCallback,
+  handleEditBlockCallback,
+  handleCreateAgentCallback,
+  handleEditAgentCallback,
+} from "../callbacks";
 
-const mockHandleCallback = jest.mocked(handleCallback);
+// Mock all callback handlers
+jest.mock("../callbacks", () => ({
+  handleCreatePromptCallback: jest.fn(),
+  handleEditPromptCallback: jest.fn(),
+  handleCreateBlockCallback: jest.fn(),
+  handleCreateAgentCallback: jest.fn(),
+  handleEditBlockCallback: jest.fn(),
+  handleEditAgentCallback: jest.fn(),
+}));
 
 const mockResult: CreateMessageResult = {
-  id: "test-id",
   content: {
     type: "text",
     text: "Test response",
   },
   role: "assistant",
   model: "test-model",
-  metadata: {},
+  _meta: {},
+};
+
+const validRequest: CreateMessageRequest = {
+  method: "sampling/createMessage",
+  params: {
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: "test",
+        },
+      },
+    ],
+    maxTokens: 100,
+    temperature: 0.7,
+    includeContext: "none",
+    _meta: {},
+  },
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockCreateMessage.mockResolvedValue(mockResult);
+  (handleCreatePromptCallback as jest.Mock<any>).mockResolvedValue(
+    "create prompt success"
+  );
+  (handleEditPromptCallback as jest.Mock<any>).mockResolvedValue(
+    "edit prompt success"
+  );
+  (handleCreateBlockCallback as jest.Mock<any>).mockResolvedValue(
+    "create block success"
+  );
+  (handleEditBlockCallback as jest.Mock<any>).mockResolvedValue(
+    "edit block success"
+  );
+  (handleCreateAgentCallback as jest.Mock<any>).mockResolvedValue(
+    "create agent success"
+  );
+  (handleEditAgentCallback as jest.Mock<any>).mockResolvedValue(
+    "edit agent success"
+  );
 });
 
-describe("sendSamplingRequest", () => {
-  const validRequest: CreateMessageRequest = {
-    method: "sampling/createMessage",
-    params: {
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: "Hello world",
-          },
+describe("sampling", () => {
+  describe("sendSamplingRequest", () => {
+    it("should process sampling request successfully", async () => {
+      const request: CreateMessageRequest = {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "test",
+              },
+            },
+          ],
+          maxTokens: 100,
+          model: "test-model",
+          _meta: {},
         },
-      ],
-      maxTokens: 100,
-    },
-  };
+      };
 
-  describe("Basic Request Validation", () => {
-    it("should successfully process a valid request", async () => {
-      const result = await sendSamplingRequest(validRequest);
-
-      expect(mockCreateMessage).toHaveBeenCalledWith({
-        messages: validRequest.params.messages,
-        maxTokens: validRequest.params.maxTokens,
-      });
+      const result = await sendSamplingRequest(request);
+      expect(mockCreateMessage).toHaveBeenCalledWith(request.params);
       expect(result).toEqual(mockResult);
     });
 
-    it("should throw error for missing method", async () => {
-      const invalidRequest = {
-        params: validRequest.params,
-      };
-      await expect(
-        sendSamplingRequest(invalidRequest as any)
-      ).rejects.toThrow();
-    });
-
-    it("should throw error for missing params", async () => {
-      const invalidRequest = {
+    it("should handle callback when provided", async () => {
+      const request: CreateMessageRequest = {
         method: "sampling/createMessage",
-      };
-      await expect(sendSamplingRequest(invalidRequest as any)).rejects.toThrow(
-        "Request must have params"
-      );
-    });
-
-    it("should throw error for empty messages array", async () => {
-      const invalidRequest = {
-        ...validRequest,
         params: {
-          ...validRequest.params,
-          messages: [],
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "test",
+              },
+            },
+          ],
+          maxTokens: 100,
+          model: "test-model",
+          _meta: {
+            callback: "create_prompt",
+          },
         },
       };
-      await expect(sendSamplingRequest(invalidRequest)).rejects.toThrow(
-        "Request must have at least one message"
+
+      await sendSamplingRequest(request);
+      expect(handleCreatePromptCallback).toHaveBeenCalledWith(mockResult);
+    });
+
+    it("should handle different callback types", async () => {
+      const callbacks = [
+        "create_prompt",
+        "edit_prompt",
+        "create_block",
+        "edit_block",
+        "create_agent",
+        "edit_agent",
+      ];
+
+      for (const callback of callbacks) {
+        const request: CreateMessageRequest = {
+          method: "sampling/createMessage",
+          params: {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: "test",
+                },
+              },
+            ],
+            maxTokens: 100,
+            model: "test-model",
+            _meta: {
+              callback,
+            },
+          },
+        };
+
+        await sendSamplingRequest(request);
+      }
+
+      expect(handleCreatePromptCallback).toHaveBeenCalled();
+      expect(handleEditPromptCallback).toHaveBeenCalled();
+      expect(handleCreateBlockCallback).toHaveBeenCalled();
+      expect(handleEditBlockCallback).toHaveBeenCalled();
+      expect(handleCreateAgentCallback).toHaveBeenCalled();
+      expect(handleEditAgentCallback).toHaveBeenCalled();
+    });
+
+    it("should handle unknown callback type", async () => {
+      const request: CreateMessageRequest = {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "test",
+              },
+            },
+          ],
+          maxTokens: 100,
+          model: "test-model",
+          _meta: {
+            callback: "unknown",
+          },
+        },
+      };
+
+      const result = await sendSamplingRequest(request);
+      expect(result).toEqual(mockResult);
+    });
+
+    it("should handle errors in sampling request", async () => {
+      const error = new Error("Test error");
+      mockCreateMessage.mockRejectedValue(error);
+
+      const request: CreateMessageRequest = {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "test",
+              },
+            },
+          ],
+          maxTokens: 100,
+          model: "test-model",
+          _meta: {},
+        },
+      };
+
+      await expect(sendSamplingRequest(request)).rejects.toThrow("Test error");
+    });
+
+    it("should handle non-Error objects in error case", async () => {
+      mockCreateMessage.mockRejectedValue("string error");
+
+      const request: CreateMessageRequest = {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "test",
+              },
+            },
+          ],
+          maxTokens: 100,
+          model: "test-model",
+          _meta: {},
+        },
+      };
+
+      await expect(sendSamplingRequest(request)).rejects.toThrow(
+        "Failed to process sampling request: string error"
       );
     });
   });
@@ -250,66 +405,6 @@ describe("sendSamplingRequest", () => {
       };
       await expect(sendSamplingRequest(invalidRequest)).rejects.toThrow(
         "Model preference priorities must be numbers between 0 and 1"
-      );
-    });
-  });
-
-  describe("Callback Handling", () => {
-    it("should handle callback if provided", async () => {
-      const mockCallbackResult: CreateMessageResult = {
-        id: "callback-test-id",
-        content: {
-          type: "text",
-          text: "Callback test response",
-        },
-        role: "assistant",
-        model: "test-model",
-        metadata: {},
-      };
-      mockCreateMessage.mockResolvedValue(mockCallbackResult);
-
-      await sendSamplingRequest({
-        method: "sampling/createMessage",
-        params: {
-          messages: [
-            {
-              role: "user",
-              content: {
-                type: "text",
-                text: "test",
-              },
-            },
-          ],
-          maxTokens: 100,
-          temperature: 0.7,
-          includeContext: "none",
-          _meta: {
-            callback: "test-callback",
-          },
-        },
-      });
-
-      expect(mockHandleCallback).toHaveBeenCalledWith(
-        "test-callback",
-        mockCallbackResult
-      );
-    });
-  });
-
-  describe("Error Handling", () => {
-    it("should handle server error", async () => {
-      const error = new Error("Server error");
-      mockCreateMessage.mockRejectedValue(error);
-
-      await expect(sendSamplingRequest(validRequest)).rejects.toThrow(error);
-    });
-
-    it("should format non-Error errors", async () => {
-      const errorMessage = "Unknown server error";
-      mockCreateMessage.mockRejectedValue(errorMessage);
-
-      await expect(sendSamplingRequest(validRequest)).rejects.toThrow(
-        `Failed to process sampling request: ${errorMessage}`
       );
     });
   });

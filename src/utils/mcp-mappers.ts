@@ -65,7 +65,7 @@ export function mapPromptsToListPromptsResult(
     prompts: prompts.map((prompt) => ({
       name: prompt.metadata.title,
       description: prompt.metadata.description || undefined,
-      arguments: [],
+      arguments: mapPromptArguments(prompt),
     })),
   };
 }

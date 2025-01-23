@@ -62,6 +62,7 @@ class MockSystemPromptService {
           status: "active",
           author: "system",
           log_message: "Initial version",
+          tag: ["agent"],
         },
         prefix: "",
       },
@@ -103,6 +104,7 @@ class MockSystemPromptService {
           status: "active",
           author: "system",
           log_message: "Initial version",
+          tag: ["agent"],
         },
         prefix: "",
       };

@@ -2,12 +2,14 @@ import { SystemPromptService } from "../services/systemprompt-service.js";
 import {
   CallToolRequest,
   CallToolResult,
+  CreateMessageResult,
   ListToolsRequest,
   ListToolsResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { TOOLS } from "../constants/tools.js";
 import { sendSamplingRequest } from "./sampling.js";
 import { handleGetPrompt } from "./prompt-handlers.js";
+import { injectVariables } from "../utils/message-handlers.js";
 import {
   CREATE_PROMPT_PROMPT,
   EDIT_PROMPT_PROMPT,
@@ -165,11 +167,12 @@ export async function handleToolCall(
           },
         });
 
-        // Send sampling request
-        const result = await sendSamplingRequest({
+        await sendSamplingRequest({
           method: "sampling/createMessage",
           params: {
-            messages: prompt.messages as Array<{
+            messages: prompt.messages.map((msg) =>
+              injectVariables(msg, { userInstructions })
+            ) as Array<{
               role: "user" | "assistant";
               content: { type: "text"; text: string };
             }>,
@@ -180,30 +183,11 @@ export async function handleToolCall(
           },
         });
 
-        // Parse the response
-        const content = result.content[0];
-        if (
-          !content ||
-          typeof content !== "object" ||
-          !("type" in content) ||
-          !("text" in content) ||
-          content.type !== "text" ||
-          typeof content.text !== "string"
-        ) {
-          throw new Error("Expected text content from sampling request");
-        }
-        const resourceData = JSON.parse(content.text);
-
-        // Create the resource based on type
-        const createdResource = await service.createPrompt(
-          resourceData as SystempromptPromptRequest
-        );
-
         return {
           content: [
             {
               type: "text",
-              text: `Successfully created ${type} ${createdResource.id}`,
+              text: `Your request has been recieved and is being processed, we will notify you when it is complete.`,
             },
           ],
         };
@@ -244,7 +228,9 @@ export async function handleToolCall(
         const result = await sendSamplingRequest({
           method: "sampling/createMessage",
           params: {
-            messages: prompt.messages as Array<{
+            messages: prompt.messages.map((msg) =>
+              injectVariables(msg, { userInstructions })
+            ) as Array<{
               role: "user" | "assistant";
               content: { type: "text"; text: string };
             }>,
@@ -254,32 +240,11 @@ export async function handleToolCall(
             arguments: { userInstructions },
           },
         });
-
-        // Parse the response
-        const content = result.content[0];
-        if (
-          !content ||
-          typeof content !== "object" ||
-          !("type" in content) ||
-          !("text" in content) ||
-          content.type !== "text" ||
-          typeof content.text !== "string"
-        ) {
-          throw new Error("Expected text content from sampling request");
-        }
-        const resourceData = JSON.parse(content.text);
-
-        // Update the resource based on type
-        const updatedResource = await service.editPrompt(
-          id,
-          resourceData as SystempromptPromptRequest
-        );
-
         return {
           content: [
             {
               type: "text",
-              text: `Successfully updated ${type} ${updatedResource.id}`,
+              text: `Your request has been recieved and is being processed, we will notify you when it is complete.`,
             },
           ],
         };

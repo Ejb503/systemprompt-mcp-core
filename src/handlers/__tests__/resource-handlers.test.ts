@@ -47,6 +47,52 @@ describe("Resource Handlers", () => {
       ]);
       expect(result._meta).toEqual({});
     });
+
+    it("should handle service errors with messages", async () => {
+      const mockError = new Error("Service unavailable");
+      const mockListBlocks = jest.fn(() => Promise.reject(mockError));
+      const mockGetInstance = jest.fn(
+        () =>
+          ({
+            listBlocks: mockListBlocks,
+          } as unknown as SystemPromptService)
+      );
+
+      jest
+        .spyOn(SystemPromptService, "getInstance")
+        .mockImplementation(mockGetInstance);
+
+      await expect(
+        handleListResources({ method: "resources/list" })
+      ).rejects.toThrow(
+        "Failed to fetch blocks from systemprompt.io: Service unavailable"
+      );
+
+      jest.restoreAllMocks();
+    });
+
+    it("should handle service errors without messages", async () => {
+      const mockError = new Error();
+      const mockListBlocks = jest.fn(() => Promise.reject(mockError));
+      const mockGetInstance = jest.fn(
+        () =>
+          ({
+            listBlocks: mockListBlocks,
+          } as unknown as SystemPromptService)
+      );
+
+      jest
+        .spyOn(SystemPromptService, "getInstance")
+        .mockImplementation(mockGetInstance);
+
+      await expect(
+        handleListResources({ method: "resources/list" })
+      ).rejects.toThrow(
+        "Failed to fetch blocks from systemprompt.io: Unknown error"
+      );
+
+      jest.restoreAllMocks();
+    });
   });
 
   describe("handleResourceCall", () => {
@@ -127,6 +173,58 @@ describe("Resource Handlers", () => {
       ).rejects.toThrow(
         "Failed to fetch block from systemprompt.io: Resource not found"
       );
+    });
+
+    it("should handle service errors with messages", async () => {
+      const mockError = new Error("Service unavailable");
+      const mockGetBlock = jest.fn(() => Promise.reject(mockError));
+      const mockGetInstance = jest.fn(
+        () =>
+          ({
+            getBlock: mockGetBlock,
+          } as unknown as SystemPromptService)
+      );
+
+      jest
+        .spyOn(SystemPromptService, "getInstance")
+        .mockImplementation(mockGetInstance);
+
+      await expect(
+        handleResourceCall({
+          method: "resources/read",
+          params: { uri: "resource:///block/test" },
+        })
+      ).rejects.toThrow(
+        "Failed to fetch block from systemprompt.io: Service unavailable"
+      );
+
+      jest.restoreAllMocks();
+    });
+
+    it("should handle service errors without messages", async () => {
+      const mockError = new Error();
+      const mockGetBlock = jest.fn(() => Promise.reject(mockError));
+      const mockGetInstance = jest.fn(
+        () =>
+          ({
+            getBlock: mockGetBlock,
+          } as unknown as SystemPromptService)
+      );
+
+      jest
+        .spyOn(SystemPromptService, "getInstance")
+        .mockImplementation(mockGetInstance);
+
+      await expect(
+        handleResourceCall({
+          method: "resources/read",
+          params: { uri: "resource:///block/test" },
+        })
+      ).rejects.toThrow(
+        "Failed to fetch block from systemprompt.io: Unknown error"
+      );
+
+      jest.restoreAllMocks();
     });
   });
 });

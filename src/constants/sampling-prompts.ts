@@ -35,8 +35,8 @@ export const CREATE_PROMPT_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptPromptRequestSchema,
-    callback: "systemprompt_create_prompt",
+    responseSchema: SystempromptPromptRequestSchema,
+    callback: "create_prompt",
   },
 };
 
@@ -63,8 +63,8 @@ export const EDIT_PROMPT_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptPromptRequestSchema,
-    callback: "systemprompt_edit_prompt",
+    responseSchema: SystempromptPromptRequestSchema,
+    callback: "edit_prompt",
   },
 };
 
@@ -90,8 +90,8 @@ export const CREATE_BLOCK_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptBlockRequestSchema,
-    callback: "systemprompt_create_block",
+    responseSchema: SystempromptBlockRequestSchema,
+    callback: "create_block",
   },
 };
 
@@ -118,8 +118,8 @@ export const EDIT_BLOCK_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptBlockRequestSchema,
-    callback: "systemprompt_edit_block",
+    responseSchema: SystempromptBlockRequestSchema,
+    callback: "edit_block",
   },
 };
 
@@ -145,8 +145,8 @@ export const CREATE_AGENT_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptAgentRequestSchema,
-    callback: "systemprompt_create_agent",
+    responseSchema: SystempromptAgentRequestSchema,
+    callback: "create_agent",
   },
 };
 
@@ -173,13 +173,13 @@ export const EDIT_AGENT_PROMPT: SamplingPrompt = {
     },
   ],
   _meta: {
-    complexResponseSchema: SystempromptAgentRequestSchema,
-    callback: "systemprompt_edit_agent",
+    responseSchema: SystempromptAgentRequestSchema,
+    callback: "edit_agent",
   },
 };
 
 // Export all prompts
-export const SYSTEMPROMPT_PROMPTS = [
+export const PROMPTS = [
   CREATE_PROMPT_PROMPT,
   EDIT_PROMPT_PROMPT,
   CREATE_BLOCK_PROMPT,

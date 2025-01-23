@@ -9,7 +9,7 @@ import {
   mapPromptToGetPromptResult,
   mapPromptsToListPromptsResult,
 } from "../utils/mcp-mappers.js";
-import { SYSTEMPROMPT_PROMPTS } from "../constants/sampling-prompts.js";
+import { PROMPTS } from "../constants/sampling-prompts.js";
 
 export async function handleListPrompts(
   request: ListPromptsRequest
@@ -18,7 +18,7 @@ export async function handleListPrompts(
     const service = SystemPromptService.getInstance();
     const remotePrompts = await service.getAllPrompts();
     const allPrompts = mapPromptsToListPromptsResult(remotePrompts);
-    allPrompts.prompts = allPrompts.prompts.concat(SYSTEMPROMPT_PROMPTS);
+    allPrompts.prompts = allPrompts.prompts.concat(PROMPTS);
 
     return allPrompts;
   } catch (error: any) {
@@ -37,7 +37,7 @@ export async function handleGetPrompt(
       mapPromptToGetPromptResult(i)
     );
 
-    const allPrompts = [...mappedRemotePrompts, ...SYSTEMPROMPT_PROMPTS];
+    const allPrompts = [...mappedRemotePrompts, ...PROMPTS];
     const prompt = allPrompts.find((p) => p.name === request.params.name);
 
     if (!prompt) {

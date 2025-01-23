@@ -22,7 +22,9 @@ GUIDELINES:
 2. Use clear, unambiguous language
 3. Include specific examples where helpful
 4. Define strict schemas for input/output
-5. Anticipate edge cases and errors`;
+5. Anticipate edge cases and errors
+
+Follow the users instructions and create a world class prompt to meet their expectations.`;
 
 export const PROMPT_EDITOR_INSTRUCTIONS = `You are an expert at modifying existing systemprompt prompts. Your task is to edit a prompt while maintaining its core functionality and improving its effectiveness.
 

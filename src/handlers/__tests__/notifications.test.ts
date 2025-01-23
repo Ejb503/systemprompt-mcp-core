@@ -71,6 +71,7 @@ describe("Notifications", () => {
             status: "published",
             author: "test",
             log_message: "Created",
+            tag: ["test"],
           },
         },
       ];
@@ -123,6 +124,7 @@ describe("Notifications", () => {
             status: "published",
             author: "test",
             log_message: "Created",
+            tag: ["test"],
           },
           instruction: {
             static: "Test instruction",

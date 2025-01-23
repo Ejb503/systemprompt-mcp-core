@@ -49,6 +49,7 @@ export const mockSystemPromptResult: SystempromptPromptResponse = {
     status: "published",
     author: "test-user",
     log_message: "Initial creation",
+    tag: ["documentation", "helper"],
   },
   _link: "https://systemprompt.io/prompts/123",
 };
@@ -113,6 +114,7 @@ export const mockArrayPromptResult: SystempromptPromptResponse = {
     status: "published",
     author: "test-user",
     log_message: "Initial creation",
+    tag: ["todo", "organizer"],
   },
   _link: "https://systemprompt.io/prompts/124",
 };
@@ -204,6 +206,7 @@ export const mockNestedPromptResult: SystempromptPromptResponse = {
     status: "published",
     author: "test-user",
     log_message: "Initial creation",
+    tag: ["contact", "manager"],
   },
   _link: "https://systemprompt.io/prompts/125",
 };

@@ -27,6 +27,7 @@ const mockPrompts: SystempromptPromptResponse[] = [
       status: "active",
       author: "test",
       log_message: "Initial version",
+      tag: ["notion", "creator"],
     },
     instruction: {
       static: "Test assistant instruction",
@@ -98,6 +99,12 @@ describe("Prompt Handlers", () => {
       expect(result.prompts[0].name).toBe(mockPrompts[0].metadata.title);
     });
 
+    it("should combine remote prompts with SYSTEMPROMPT_PROMPTS", async () => {
+      const result = await handleListPrompts({ method: "prompts/list" });
+      // Check that we have both remote prompts and SYSTEMPROMPT_PROMPTS
+      expect(result.prompts.length).toBeGreaterThan(mockPrompts.length);
+    });
+
     it("should handle errors gracefully", async () => {
       // Override mock for this specific test
       await jest.isolateModules(async () => {
@@ -116,7 +123,7 @@ describe("Prompt Handlers", () => {
         const { handleListPrompts } = await import("../prompt-handlers.js");
         await expect(
           handleListPrompts({ method: "prompts/list" })
-        ).rejects.toThrow("Failed to fetch prompts");
+        ).rejects.toThrow("Failed to fetch prompts from systemprompt.io");
       });
     });
   });
@@ -148,6 +155,58 @@ describe("Prompt Handlers", () => {
       expect(prompt.metadata.title).toBe("Notion Page Creator");
       expect(prompt.input.schema.properties).toHaveProperty("databaseId");
       expect(prompt.input.schema.properties).toHaveProperty("userInstructions");
+    });
+
+    it("should handle service errors with detailed messages", async () => {
+      await jest.isolateModules(async () => {
+        const mockError = new Error("Service unavailable");
+        const mockGetAllPrompts = jest.fn(() => Promise.reject(mockError));
+        const mockGetInstance = jest.fn(() => ({
+          getAllPrompts: mockGetAllPrompts,
+        }));
+
+        jest.doMock("../../services/systemprompt-service.js", () => ({
+          SystemPromptService: {
+            getInstance: mockGetInstance,
+          },
+        }));
+
+        const { handleGetPrompt } = await import("../prompt-handlers.js");
+        await expect(
+          handleGetPrompt({
+            method: "prompts/get",
+            params: { name: "Test Prompt" },
+          })
+        ).rejects.toThrow(
+          "Failed to fetch prompt from systemprompt.io: Service unavailable"
+        );
+      });
+    });
+
+    it("should handle errors without messages", async () => {
+      await jest.isolateModules(async () => {
+        const mockError = new Error();
+        const mockGetAllPrompts = jest.fn(() => Promise.reject(mockError));
+        const mockGetInstance = jest.fn(() => ({
+          getAllPrompts: mockGetAllPrompts,
+        }));
+
+        jest.doMock("../../services/systemprompt-service.js", () => ({
+          SystemPromptService: {
+            getInstance: mockGetInstance,
+          },
+        }));
+
+        const { handleGetPrompt } = await import("../prompt-handlers.js");
+        await expect(
+          handleGetPrompt({
+            method: "prompts/get",
+            params: { name: "Test Prompt" },
+          })
+        ).rejects.toThrow(
+          "Failed to fetch prompt from systemprompt.io: Unknown error"
+        );
+      });
     });
   });
 });

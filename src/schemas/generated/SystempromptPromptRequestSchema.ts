@@ -1,90 +1,48 @@
 import type { JSONSchema7 } from "json-schema";
 
 export const SystempromptPromptRequestSchema: JSONSchema7 = {
-  "type": "object",
-  "properties": {
-    "metadata": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "type": "string"
+  type: "object",
+  properties: {
+    metadata: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "The title of the prompt",
         },
-        "description": {
-          "type": [
-            "null",
-            "string"
-          ]
+        description: {
+          type: ["string"],
+          description: "A detailed description of what the prompt does",
         },
-        "created": {
-          "type": "string"
+        log_message: {
+          type: "string",
+          description: "A message to log when this prompt is used",
         },
-        "updated": {
-          "type": "string"
+        tag: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description: "Tags to categorize the prompt",
         },
-        "version": {
-          "type": "number"
-        },
-        "status": {
-          "type": "string"
-        },
-        "author": {
-          "type": "string"
-        },
-        "log_message": {
-          "type": "string"
-        }
       },
-      "additionalProperties": false
+      additionalProperties: false,
+      required: ["title", "description"],
     },
-    "instruction": {
-      "type": "object",
-      "properties": {
-        "static": {
-          "type": "string"
-        }
+    instruction: {
+      type: "object",
+      properties: {
+        static: {
+          type: "string",
+          description:
+            "The static instruction text that defines the prompt behavior",
+        },
       },
-      "additionalProperties": false,
-      "required": [
-        "static"
-      ]
+      additionalProperties: false,
+      required: ["static"],
     },
-    "input": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "type"
-      ]
-    },
-    "output": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "type"
-      ]
-    }
   },
-  "additionalProperties": false,
-  "required": [
-    "input",
-    "instruction",
-    "metadata",
-    "output"
-  ],
-  "$schema": "http://json-schema.org/draft-07/schema#"
+  additionalProperties: false,
+  required: ["instruction", "metadata"],
+  $schema: "http://json-schema.org/draft-07/schema#",
 };

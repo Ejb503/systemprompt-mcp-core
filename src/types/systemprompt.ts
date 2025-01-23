@@ -32,12 +32,6 @@ export interface SystempromptPromptRequest {
   instruction: {
     static: string;
   };
-  input: {
-    type: string[];
-  };
-  output: {
-    type: string[];
-  };
 }
 
 export interface SystempromptUserStatusResponse {
@@ -166,4 +160,5 @@ export interface Metadata {
   status: string;
   author: string;
   log_message: string;
+  tag: string[];
 }

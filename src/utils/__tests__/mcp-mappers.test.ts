@@ -9,11 +9,230 @@ import {
   mockArrayPromptResult,
   mockNestedPromptResult,
 } from "../../__tests__/mock-objects.js";
-import type { SystempromptBlockResponse } from "../../types/index.js";
+import type {
+  SystempromptPromptResponse,
+  SystempromptBlockResponse,
+} from "../../types/systemprompt.js";
 import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
 
 describe("MCP Mappers", () => {
   describe("mapPromptToGetPromptResult", () => {
+    it("should map a prompt with all fields", () => {
+      const prompt: SystempromptPromptResponse = {
+        id: "test-prompt",
+        metadata: {
+          title: "Test Prompt",
+          description: "Test Description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "active",
+          author: "test",
+          log_message: "Initial version",
+          tag: ["test"],
+        },
+        instruction: {
+          static: "Test instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test-input",
+          description: "Test input",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {
+              testArg: {
+                type: "string",
+                description: "Test argument",
+              },
+              requiredArg: {
+                type: "string",
+                description: "Required argument",
+              },
+            },
+            required: ["requiredArg"],
+          },
+        },
+        output: {
+          name: "test-output",
+          description: "Test output",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        _link: "test-link",
+      };
+
+      const result = mapPromptToGetPromptResult(prompt);
+
+      expect(result).toEqual({
+        name: "Test Prompt",
+        description: "Test Description",
+        messages: [
+          {
+            role: "assistant",
+            content: {
+              type: "text",
+              text: "Test instruction",
+            },
+          },
+        ],
+        arguments: [
+          {
+            name: "testArg",
+            description: "Test argument",
+            required: false,
+          },
+          {
+            name: "requiredArg",
+            description: "Required argument",
+            required: true,
+          },
+        ],
+        tools: [],
+        _meta: { prompt },
+      });
+    });
+
+    it("should handle missing optional fields", () => {
+      const prompt: SystempromptPromptResponse = {
+        id: "test-prompt-2",
+        metadata: {
+          title: "Test Prompt",
+          description: "Test Description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "active",
+          author: "test",
+          log_message: "Initial version",
+          tag: ["test"],
+        },
+        instruction: {
+          static: "Test instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test-input",
+          description: "Test input",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        output: {
+          name: "test-output",
+          description: "Test output",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        _link: "test-link",
+      };
+
+      const result = mapPromptToGetPromptResult(prompt);
+
+      expect(result).toEqual({
+        name: "Test Prompt",
+        description: "Test Description",
+        messages: [
+          {
+            role: "assistant",
+            content: {
+              type: "text",
+              text: "Test instruction",
+            },
+          },
+        ],
+        arguments: [],
+        tools: [],
+        _meta: { prompt },
+      });
+    });
+
+    it("should handle invalid argument schemas", () => {
+      const prompt: SystempromptPromptResponse = {
+        id: "test-prompt-3",
+        metadata: {
+          title: "Test Prompt",
+          description: "Test Description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "active",
+          author: "test",
+          log_message: "Initial version",
+          tag: ["test"],
+        },
+        instruction: {
+          static: "Test instruction",
+          dynamic: "",
+          state: "",
+        },
+        input: {
+          name: "test-input",
+          description: "Test input",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {
+              boolProp: { type: "boolean" },
+              nullProp: { type: "null" },
+              stringProp: { type: "string" },
+              validProp: {
+                type: "string",
+                description: "Valid property",
+              },
+            },
+            required: ["validProp"],
+          },
+        },
+        output: {
+          name: "test-output",
+          description: "Test output",
+          type: ["object"],
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        _link: "test-link",
+      };
+
+      const result = mapPromptToGetPromptResult(prompt);
+
+      expect(result.arguments).toEqual([
+        {
+          name: "boolProp",
+          description: "",
+          required: false,
+        },
+        {
+          name: "nullProp",
+          description: "",
+          required: false,
+        },
+        {
+          name: "stringProp",
+          description: "",
+          required: false,
+        },
+        {
+          name: "validProp",
+          description: "Valid property",
+          required: true,
+        },
+      ]);
+    });
+
     it("should correctly map a single prompt to GetPromptResult format", () => {
       const result = mapPromptToGetPromptResult(mockSystemPromptResult);
 
@@ -76,17 +295,103 @@ describe("MCP Mappers", () => {
   });
 
   describe("mapPromptsToListPromptsResult", () => {
-    it("should correctly map an array of prompts to ListPromptsResult format", () => {
-      const prompts = [mockSystemPromptResult, mockArrayPromptResult];
+    it("should map an array of prompts", () => {
+      const prompts: SystempromptPromptResponse[] = [
+        {
+          id: "prompt-1",
+          metadata: {
+            title: "Prompt 1",
+            description: "Description 1",
+            created: "2024-01-01",
+            updated: "2024-01-01",
+            version: 1,
+            status: "active",
+            author: "test",
+            log_message: "Initial version",
+            tag: ["test"],
+          },
+          instruction: {
+            static: "Instruction 1",
+            dynamic: "",
+            state: "",
+          },
+          input: {
+            name: "input-1",
+            description: "Input 1",
+            type: ["object"],
+            schema: {
+              type: "object",
+              properties: {},
+            },
+          },
+          output: {
+            name: "output-1",
+            description: "Output 1",
+            type: ["object"],
+            schema: {
+              type: "object",
+              properties: {},
+            },
+          },
+          _link: "link-1",
+        },
+        {
+          id: "prompt-2",
+          metadata: {
+            title: "Prompt 2",
+            description: "Description 2",
+            created: "2024-01-01",
+            updated: "2024-01-01",
+            version: 1,
+            status: "active",
+            author: "test",
+            log_message: "Initial version",
+            tag: ["test"],
+          },
+          instruction: {
+            static: "Instruction 2",
+            dynamic: "",
+            state: "",
+          },
+          input: {
+            name: "input-2",
+            description: "Input 2",
+            type: ["object"],
+            schema: {
+              type: "object",
+              properties: {},
+            },
+          },
+          output: {
+            name: "output-2",
+            description: "Output 2",
+            type: ["object"],
+            schema: {
+              type: "object",
+              properties: {},
+            },
+          },
+          _link: "link-2",
+        },
+      ];
+
       const result = mapPromptsToListPromptsResult(prompts);
 
-      expect(result.prompts).toHaveLength(2);
-      expect(result.prompts[0]).toEqual({
-        name: mockSystemPromptResult.metadata.title,
-        description: mockSystemPromptResult.metadata.description,
-        arguments: [],
+      expect(result).toEqual({
+        _meta: { prompts },
+        prompts: [
+          {
+            name: "Prompt 1",
+            description: "Description 1",
+            arguments: [],
+          },
+          {
+            name: "Prompt 2",
+            description: "Description 2",
+            arguments: [],
+          },
+        ],
       });
-      expect(result._meta).toEqual({ prompts });
     });
 
     it("should handle empty prompt array", () => {
@@ -111,8 +416,42 @@ describe("MCP Mappers", () => {
         status: "published",
         author: "test-user",
         log_message: "Initial creation",
+        tag: ["test"],
       },
     };
+
+    it("should map a block to read resource result", () => {
+      const block: SystempromptBlockResponse = {
+        id: "test-block",
+        prefix: "test-prefix",
+        metadata: {
+          title: "Test Block",
+          description: "Test Description",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          version: 1,
+          status: "active",
+          author: "test",
+          log_message: "Initial version",
+          tag: ["test"],
+        },
+        content: "Test content",
+        _link: "test-link",
+      };
+
+      const result = mapBlockToReadResourceResult(block);
+
+      expect(result).toEqual({
+        contents: [
+          {
+            uri: "resource:///block/test-block",
+            mimeType: "text/plain",
+            text: "Test content",
+          },
+        ],
+        _meta: {},
+      });
+    });
 
     it("should correctly map a single block to ReadResourceResult format", () => {
       const result = mapBlockToReadResourceResult(mockBlock);
@@ -142,6 +481,7 @@ describe("MCP Mappers", () => {
           status: "published",
           author: "test-user",
           log_message: "Initial creation",
+          tag: ["test"],
         },
       },
       {
@@ -157,9 +497,69 @@ describe("MCP Mappers", () => {
           status: "published",
           author: "test-user",
           log_message: "Initial creation",
+          tag: ["test"],
         },
       },
     ];
+
+    it("should map blocks to list resources result", () => {
+      const blocks: SystempromptBlockResponse[] = [
+        {
+          id: "block-1",
+          prefix: "prefix-1",
+          metadata: {
+            title: "Block 1",
+            description: "Description 1",
+            created: "2024-01-01",
+            updated: "2024-01-01",
+            version: 1,
+            status: "active",
+            author: "test",
+            log_message: "Initial version",
+            tag: ["test"],
+          },
+          content: "Content 1",
+          _link: "link-1",
+        },
+        {
+          id: "block-2",
+          prefix: "prefix-2",
+          metadata: {
+            title: "Block 2",
+            description: "Description 2",
+            created: "2024-01-01",
+            updated: "2024-01-01",
+            version: 1,
+            status: "active",
+            author: "test",
+            log_message: "Initial version",
+            tag: ["test"],
+          },
+          content: "Content 2",
+          _link: "link-2",
+        },
+      ];
+
+      const result = mapBlocksToListResourcesResult(blocks);
+
+      expect(result).toEqual({
+        _meta: {},
+        resources: [
+          {
+            uri: "resource:///block/block-1",
+            name: "Block 1",
+            description: "Description 1",
+            mimeType: "text/plain",
+          },
+          {
+            uri: "resource:///block/block-2",
+            name: "Block 2",
+            description: "Description 2",
+            mimeType: "text/plain",
+          },
+        ],
+      });
+    });
 
     it("should correctly map an array of blocks to ListResourcesResult format", () => {
       const result = mapBlocksToListResourcesResult(mockBlocks);
