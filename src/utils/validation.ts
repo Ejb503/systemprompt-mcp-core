@@ -1,8 +1,8 @@
 import type { ErrorObject } from "ajv";
 import type { JSONSchema7 } from "json-schema";
-import { Ajv } from "ajv";
+import { Ajv as AjvConstructor } from "ajv";
 
-const ajv = new Ajv({
+const ajv = new AjvConstructor({
   allErrors: true,
   strict: false,
   strictSchema: false,
