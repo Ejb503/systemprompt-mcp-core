@@ -8,6 +8,8 @@ export const SystempromptBlockRequestSchema: JSONSchema7 = {
     },
     prefix: {
       type: "string",
+      description:
+        "The prefix to use for the block. Must have no spaces or special characters.",
     },
     metadata: {
       type: "object",

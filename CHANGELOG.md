@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.18] - 2025-01-23
+
+### Changed
+
+- Updated commit state and version tracking
+- Synchronized version information across package files
+
 ## [1.0.17] - 2025-01-13
 
 ### Fixed

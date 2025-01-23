@@ -2,7 +2,6 @@ import { SystemPromptService } from "../services/systemprompt-service.js";
 import {
   CallToolRequest,
   CallToolResult,
-  CreateMessageResult,
   ListToolsRequest,
   ListToolsResult,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -18,12 +17,6 @@ import {
   CREATE_AGENT_PROMPT,
   EDIT_AGENT_PROMPT,
 } from "../constants/sampling-prompts.js";
-import type {
-  SystempromptPromptRequest,
-  SystempromptBlockRequest,
-  SystempromptAgentRequest,
-} from "../types/index.js";
-
 export async function handleListTools(
   request: ListToolsRequest
 ): Promise<ListToolsResult> {
@@ -40,11 +33,7 @@ export async function handleToolCall(
         const result = await service.fetchUserStatus();
         const user = result.user;
         const billing = result.billing;
-        const apiKey = result.api_key;
         const markdown = [
-          "## API Key",
-          `- **Key**: ${apiKey}`,
-          "",
           "## User Information",
           `- **Name**: ${user.name}`,
           `- **Email**: ${user.email}`,
@@ -131,7 +120,6 @@ export async function handleToolCall(
             ])
             .flat(),
         ].join("\n");
-
         return {
           content: [{ type: "text", text: markdown }],
         };
@@ -147,7 +135,6 @@ export async function handleToolCall(
           );
         }
 
-        // Get the appropriate prompt based on resource type
         const promptMap = {
           prompt: CREATE_PROMPT_PROMPT,
           block: CREATE_BLOCK_PROMPT,

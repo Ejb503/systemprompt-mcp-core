@@ -18,7 +18,6 @@ export async function handleListPrompts(
     const service = SystemPromptService.getInstance();
     const remotePrompts = await service.getAllPrompts();
     const allPrompts = mapPromptsToListPromptsResult(remotePrompts);
-    allPrompts.prompts = allPrompts.prompts.concat(PROMPTS);
 
     return allPrompts;
   } catch (error: any) {

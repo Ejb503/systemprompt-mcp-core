@@ -8,9 +8,11 @@
 
 [Website](https://systemprompt.io) | [Documentation](https://systemprompt.io/documentation) | [Blog](https://tyingshoelaces.com) | [Get API Key](https://systemprompt.io/console)
 
-A specialized Model Context Protocol (MCP) server that enables you to create, manage, and extend AI agents through a powerful prompt and tool management system. This server integrates with [systemprompt.io](https://systemprompt.io) to provide seamless creation, management, and versioning of system prompts through MCP. It works in conjunction with the [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) to provide a complete voice-powered AI workflow solution.
+A specialized Model Context Protocol (MCP) server that enables you to create, manage, and extend AI agents through a powerful prompt and tool management system. This server integrates with [systemprompt.io](https://systemprompt.io) to provide seamless creation, management, and versioning of system prompts through MCP.
 
 An API KEY is required to use this server. This is currently free, although this may change in the future. You can get one [here](https://systemprompt.io/console).
+
+This server uses Sampling and Notification functionality from the [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk). This will only work with advanced clients that support these features. A free opensource client [multimodal-mcp-client](https://github.com/Ejb503/multimodal-mcp-client) can be used to provide a complete voice-powered AI workflow solution.
 
 ## Required Client
 
@@ -27,6 +29,64 @@ This server is designed to work with the [multimodal-mcp-client](https://github.
 
 ## Features
 
+#### Core Functionality
+
+- **MCP Protocol Integration**: Full implementation of Model Context Protocol for seamless AI agent interactions
+- **Voice-Powered Interface**: Compatible with voice commands through multimodal-mcp-client
+- **Real-Time Processing**: Supports streaming responses and real-time interactions
+- **Type-Safe Implementation**: Full TypeScript support with proper error handling
+
+#### Agent Management
+
+- Create and configure AI agents with specific capabilities
+- Manage agent states and contexts
+- Define agent behaviors through system prompts
+- Monitor and debug agent interactions
+- Version control for agent configurations
+- Resource management for agent assets
+
+#### Advanced Tools System
+
+Built-in tools include:
+
+- **Prompt Management**
+  - `create_prompt` - Create new system prompts with metadata
+  - `edit_prompt` - Update existing system prompts with versioning
+  - `get_prompt` - Retrieve specific prompt configurations
+- **Resource Management**
+  - `create_resource` - Create new agent resources and configurations
+  - `edit_resource` - Modify existing agent resources
+  - `list_resources` - Browse available agent resources
+  - `read_resource` - Access specific agent resource content
+- **System Tools**
+  - `systemprompt_heartbeat` - Monitor system status and health
+  - `systemprompt_fetch_resources` - Retrieve all available resources
+- **Agent Management**
+  - `create_agent` - Create new systemprompt agents
+  - `edit_agent` - Modify existing systemprompt agents
+  - `list_agents` - View available systemprompt agents
+
+#### Sampling & Notifications
+
+- Advanced sampling capabilities for AI responses
+- Real-time notification system for agent events
+- Configurable sampling parameters
+- Event-driven architecture for notifications
+
+#### Integration Features
+
+- API Key management and authentication
+- User status and billing information tracking
+- Subscription management
+- Usage monitoring and analytics
+
+#### Development Tools
+
+- Built-in debugging capabilities
+- Test utilities and fixtures
+- Type-safe mocking utilities
+- Comprehensive testing framework
+
 ## 🎥 Demo & Showcase
 
 Watch our video demonstration to see Systemprompt MCP Client in action:
@@ -39,33 +99,6 @@ The demo showcases:
 - Multimodal input processing
 - Tool execution and workflow automation
 - Real-time voice synthesis
-
-### Agent Management
-
-- Create and configure AI agents with specific capabilities
-- Manage agent states and contexts
-- Define agent behaviors through system prompts
-- Monitor and debug agent interactions
-
-### Tools
-
-- Extend agent capabilities with custom tools
-- Built-in tools include:
-
-  - `create_prompt` - Create new system prompts with metadata
-  - `edit_prompt` - Update existing system prompts with versioning
-  - `create_resource` - Create new agent resources and configurations
-  - `edit_resource` - Modify existing agent resources
-  - `list_resources` - Browse available agent resources
-  - `read_resource` - Access specific agent resource content
-
-- Add your own tools through the MCP interface
-
-### Prompts
-
-- Create and version system prompts
-- Manage prompt templates
-- Access structured prompts for various use cases
 
 ## Development
 
@@ -174,43 +207,6 @@ npm run test:coverage
 ### Test Structure
 
 Tests are located in `__tests__` directories next to the files they test. The naming convention is `*.test.ts`.
-
-### Test Utilities
-
-The project provides a comprehensive set of test utilities in `src/__tests__/test-utils.ts`:
-
-```typescript
-// Create test fixtures
-const note = TestFixtures.createNote({ title: "Custom Note" });
-const noteList = TestFixtures.createNoteList(3); // Creates 3 test notes
-
-// Type-safe partial mocks
-const mockService = createPartialMock<SystemPromptService>({
-  getNotes: jest.fn().mockResolvedValue([]),
-});
-
-// Async utilities
-await flushPromises(); // Wait for all promises to resolve
-```
-
-### Best Practices
-
-1. Always provide proper types for prompt inputs and outputs
-2. Include comprehensive metadata for better prompt management
-3. Use the built-in validation before creating prompts
-4. Follow the systemprompt.io format guidelines
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-
-MIT
 
 ## Related Links
 

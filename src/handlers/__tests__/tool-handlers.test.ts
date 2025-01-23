@@ -263,7 +263,6 @@ describe("Tool Handlers", () => {
         const result = await handleToolCall(request);
         expect(mockSystemPromptService.fetchUserStatus).toHaveBeenCalled();
         expect(result.content[0].type).toBe("text");
-        expect(result.content[0].text).toContain("API Key");
         expect(result.content[0].text).toContain("User Information");
         expect(result.content[0].text).toContain("Billing");
       });
@@ -296,7 +295,6 @@ describe("Tool Handlers", () => {
 
         const result = await handleToolCall(request);
         expect(result.content[0].type).toBe("text");
-        expect(result.content[0].text).toContain("API Key");
         expect(result.content[0].text).toContain("User Information");
         expect(result.content[0].text).toContain("Billing");
       });

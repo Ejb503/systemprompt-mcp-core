@@ -98,13 +98,6 @@ describe("Prompt Handlers", () => {
       expect(result.prompts).toBeDefined();
       expect(result.prompts[0].name).toBe(mockPrompts[0].metadata.title);
     });
-
-    it("should combine remote prompts with SYSTEMPROMPT_PROMPTS", async () => {
-      const result = await handleListPrompts({ method: "prompts/list" });
-      // Check that we have both remote prompts and SYSTEMPROMPT_PROMPTS
-      expect(result.prompts.length).toBeGreaterThan(mockPrompts.length);
-    });
-
     it("should handle errors gracefully", async () => {
       // Override mock for this specific test
       await jest.isolateModules(async () => {
