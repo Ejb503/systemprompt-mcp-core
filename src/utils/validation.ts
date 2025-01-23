@@ -1,8 +1,9 @@
 import type { ErrorObject } from "ajv";
 import type { JSONSchema7 } from "json-schema";
-import { Ajv as AjvConstructor } from "ajv";
+import {Ajv} from "ajv";
 
-const ajv = new AjvConstructor({
+// Using type assertion to help TypeScript understand the constructor
+const ajv = new Ajv({
   allErrors: true,
   strict: false,
   strictSchema: false,
