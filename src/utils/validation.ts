@@ -1,6 +1,7 @@
 import type { ErrorObject } from "ajv";
 import type { JSONSchema7 } from "json-schema";
-import { Ajv } from "ajv";
+import AjvModule from "ajv";
+const Ajv = AjvModule.default || AjvModule;
 
 export const ajv = new Ajv({
   allErrors: true,
@@ -20,7 +21,7 @@ export function validateWithErrors(data: unknown, schema: JSONSchema7): void {
     const errors = validate.errors
       ?.map((e: ErrorObject) => {
         if (e.keyword === "required") {
-          const property = e.params.missingProperty;
+          const property = (e.params as any).missingProperty;
           // Map property names to expected error messages
           const errorMap: Record<string, string> = {
             params: "Request must have params",
@@ -40,42 +41,45 @@ export function validateWithErrors(data: unknown, schema: JSONSchema7): void {
           };
           return errorMap[property] || `Missing required field: ${property}`;
         }
-        if (e.keyword === "minimum" && e.params.limit === 1) {
-          if (e.instancePath === "/params/maxTokens") {
+        if (e.keyword === "minimum" && (e.params as any).limit === 1) {
+          if ((e as any).instancePath === "/params/maxTokens") {
             return "maxTokens must be a positive number";
           }
-          if (e.instancePath === "/params/messages") {
+          if ((e as any).instancePath === "/params/messages") {
             return "Request must have at least one message";
           }
         }
-        if (e.keyword === "maximum" && e.params.limit === 1) {
-          if (e.instancePath === "/params/temperature") {
-            return "temperature must be a number between 0 and 1";
+        if (e.keyword === "maximum" && (e.params as any).limit === 1) {
+          if ((e as any).instancePath === "/params/temperature") {
+            return "Temperature must be between 0 and 1";
           }
-          if (e.instancePath.includes("Priority")) {
-            return "Model preference priorities must be numbers between 0 and 1";
+          if ((e as any).instancePath.includes("Priority")) {
+            return "Priority values must be between 0 and 1";
           }
         }
         if (e.keyword === "enum") {
-          if (e.instancePath === "/params/includeContext") {
-            return 'includeContext must be "none", "thisServer", or "allServers"';
+          if ((e as any).instancePath === "/params/includeContext") {
+            return 'includeContext must be one of: "none", "thisServer", or "allServers"';
           }
-          if (e.instancePath.includes("/role")) {
+          if ((e as any).instancePath.includes("/role")) {
             return 'Message role must be either "user" or "assistant"';
           }
-          if (e.instancePath.includes("/type")) {
+          if ((e as any).instancePath.includes("/type")) {
             return 'Content type must be either "text" or "image"';
           }
         }
         if (e.keyword === "type") {
-          if (e.instancePath.includes("/text")) {
-            return "Text content must have a string text field";
+          if ((e as any).instancePath.includes("/text")) {
+            return "Text content must be a string";
           }
         }
-        if (e.keyword === "minItems" && e.instancePath === "/params/messages") {
+        if (
+          e.keyword === "minItems" &&
+          (e as any).instancePath === "/params/messages"
+        ) {
           return "Request must have at least one message";
         }
-        return e.message;
+        return e.message || "Unknown validation error";
       })
       .join(", ");
     throw new Error(errors);
