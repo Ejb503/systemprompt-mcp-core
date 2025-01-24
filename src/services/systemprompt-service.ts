@@ -163,7 +163,6 @@ export class SystemPromptService {
     return this.request<SystempromptAgentResponse>("GET", `/agent/${agentId}`);
   }
 
-
   async listAgents(): Promise<SystempromptAgentResponse[]> {
     return this.request<SystempromptAgentResponse[]>("GET", "/agent");
   }

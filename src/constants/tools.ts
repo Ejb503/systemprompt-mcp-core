@@ -86,20 +86,20 @@ export const TOOLS: Tool[] = [
       required: ["id"],
     },
   },
-    {
-    name: "systempromt_execute_prompt",
-    description:
-      "Executes a prompt and returns the result.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "The ID of the prompt to execute.",
-        },
-      },
-      required: ["id"],
-    },
-  },
+  //   {
+  //   name: "systempromt_execute_prompt",
+  //   description:
+  //     "Executes a prompt and returns the result.",
+  //   inputSchema: {
+  //     type: "object",
+  //     properties: {
+  //       id: {
+  //         type: "string",
+  //         description: "The ID of the prompt to execute.",
+  //       },
+  //     },
+  //     required: ["id"],
+  //   },
+  // },
 
 ];
