@@ -95,6 +95,34 @@ export const CREATE_BLOCK_PROMPT: SamplingPrompt = {
   },
 };
 
+// TODO
+// export const EXECUTE_PROMPT_PROMPT: SamplingPrompt = {
+//   name: "ExecutePrompt",
+//   description: "Executes a prompt and returns the result",
+//   arguments: promptArgs,
+//   messages: [
+//     {
+//       role: "assistant",
+//       content: {
+//         type: "text",
+//         text: EXECUTE_PROMPT_INSTRUCTIONS,
+//       },
+//     },
+//     {
+//       role: "user",
+//       content: {
+//         type: "text",
+//         text: `<input><userInstructions>{{userInstructions}}</userInstructions></input>`,
+//       },
+//     },
+//   ],
+//   _meta: {
+//     responseSchema: SystempromptBlockRequestSchema,
+//     callback: "create_block",
+//   },
+// };
+
+
 // Block Edit Prompt
 export const EDIT_BLOCK_PROMPT: SamplingPrompt = {
   name: "EditBlock",

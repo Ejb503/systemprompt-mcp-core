@@ -8,6 +8,8 @@ import { SystemPromptService } from "../services/systemprompt-service.js";
 import {
   mapBlockToReadResourceResult,
   mapBlocksToListResourcesResult,
+  mapAgentsToListResourcesResult,
+  mapAgentToReadResourceResult
 } from "../utils/mcp-mappers.js";
 
 export async function handleListResources(
@@ -16,11 +18,19 @@ export async function handleListResources(
   try {
     const service = SystemPromptService.getInstance();
     const blocks = await service.listBlocks();
-    return mapBlocksToListResourcesResult(blocks);
+    const agents = await service.listAgents();
+    
+    const blockResources = mapBlocksToListResourcesResult(blocks);
+    const agentResources = mapAgentsToListResourcesResult(agents);
+    
+    return {
+      _meta: {},
+      resources: [...blockResources.resources, ...agentResources.resources],
+    };
   } catch (error: any) {
-    console.error("Failed to fetch blocks:", error);
+    console.error("Failed to fetch resources:", error);
     throw new Error(
-      `Failed to fetch blocks from systemprompt.io: ${
+      `Failed to fetch resources from systemprompt.io: ${
         error.message || "Unknown error"
       }`
     );
@@ -33,21 +43,31 @@ export async function handleResourceCall(
   try {
     const service = SystemPromptService.getInstance();
     const { uri } = request.params;
-    const match = uri.match(/^resource:\/\/\/block\/(.+)$/);
+    
+    const blockMatch = uri.match(/^resource:\/\/\/block\/(.+)$/);
+    const agentMatch = uri.match(/^resource:\/\/\/agent\/(.+)$/);
 
-    if (!match) {
+    if (!blockMatch && !agentMatch) {
       throw new Error(
-        "Invalid resource URI format - expected resource:///block/{id}"
+        "Invalid resource URI format - expected resource:///block/{id} or resource:///agent/{id}"
       );
     }
 
-    const blockId = match[1];
-    const block = await service.getBlock(blockId);
-    return mapBlockToReadResourceResult(block);
+    if (blockMatch) {
+      const blockId = blockMatch[1];
+      const block = await service.getBlock(blockId);
+      return mapBlockToReadResourceResult(block);
+    } else if (agentMatch) {
+      const agentId = agentMatch[1];
+      const agent = await service.getAgent(agentId);
+      return mapAgentToReadResourceResult(agent);
+    }
+
+    throw new Error("Failed to process resource request");
   } catch (error: any) {
-    console.error("Failed to fetch block:", error);
+    console.error("Failed to fetch resource:", error);
     throw new Error(
-      `Failed to fetch block from systemprompt.io: ${
+      `Failed to fetch resource from systemprompt.io: ${
         error.message || "Unknown error"
       }`
     );

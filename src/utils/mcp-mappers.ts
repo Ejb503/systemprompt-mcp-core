@@ -7,6 +7,7 @@ import {
 import type {
   SystempromptPromptResponse,
   SystempromptBlockResponse,
+  SystempromptAgentResponse,
 } from "../types/systemprompt.js";
 
 /**
@@ -89,6 +90,24 @@ export function mapBlockToReadResourceResult(
   };
 }
 
+export function mapAgentToReadResourceResult(
+  agent: SystempromptAgentResponse
+): ReadResourceResult {
+  return {
+    contents: [
+      {
+        uri: `resource:///agent/${agent.id}`,
+        mimeType: "text/plain",
+        text: agent.content,
+      },
+    ],
+    _meta: {
+      agent: true
+    },
+  };
+}
+
+
 /**
  * Maps an array of blocks to the MCP ListResourcesResult format.
  * Used when listing multiple blocks.
@@ -106,3 +125,21 @@ export function mapBlocksToListResourcesResult(
     })),
   };
 }
+
+export function mapAgentsToListResourcesResult(
+  agents: SystempromptAgentResponse[]
+): ListResourcesResult {
+  return {
+    _meta: {},
+    resources: agents.map((agent) => ({
+      uri: `resource:///agent/${agent.id}`,
+      name: agent.metadata.title,
+      description: agent.metadata.description || undefined,
+      mimeType: "text/plain",
+      _meta: {
+        agent: true
+      }
+    })),
+  };
+}
+

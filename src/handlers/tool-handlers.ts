@@ -179,6 +179,48 @@ export async function handleToolCall(
           ],
         };
       }
+      // case "systempromt_execute_prompt": {
+      //   const { name } = request.params.arguments as {
+      //     name: string;
+      //   };
+      //   if (!name) {
+      //     throw new Error(
+      //       "Tool call failed: Missing required parameters - id, type and userInstructions are required"
+      //     );
+      //   }
+
+      //   const prompt = await handleGetPrompt({
+      //     method: "prompts/get",
+      //     params: {
+      //       name: name,
+      //       arguments: { userInstructions },
+      //     },
+      //   });
+
+      //   await sendSamplingRequest({
+      //     method: "sampling/createMessage",
+      //     params: {
+      //       messages: prompt.messages.map((msg) =>
+      //         injectVariables(msg, { userInstructions })
+      //       ) as Array<{
+      //         role: "user" | "assistant";
+      //         content: { type: "text"; text: string };
+      //       }>,
+      //       maxTokens: 100000,
+      //       temperature: 0.7,
+      //       _meta: prompt._meta,
+      //       arguments: { userInstructions },
+      //     },
+      //   });
+      //   return {
+      //     content: [
+      //       {
+      //         type: "text",
+      //         text: `Your request has been recieved and is being processed, we will notify you when it is complete.`,
+      //       },
+      //     ],
+      //   };
+      // }
       case "systemprompt_update_resource": {
         const { id, type, userInstructions } = request.params.arguments as {
           id?: string;
@@ -211,8 +253,7 @@ export async function handleToolCall(
           },
         });
 
-        // Send sampling request
-        const result = await sendSamplingRequest({
+        await sendSamplingRequest({
           method: "sampling/createMessage",
           params: {
             messages: prompt.messages.map((msg) =>
