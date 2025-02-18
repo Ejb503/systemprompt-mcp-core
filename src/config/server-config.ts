@@ -4,8 +4,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 export const serverConfig: Implementation = {
-  name: "systemprompt-agent-server",
-  version: "1.0.0",
+  name: "systemprompt-mcp-core",
+  version: "1.0.28",
   metadata: {
     name: "System Prompt Agent Server",
     description:
