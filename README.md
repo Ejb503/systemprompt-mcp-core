@@ -1,6 +1,6 @@
 # systemprompt-agent-server
 
-[![npm version](https://img.shields.io/npm/v/systemprompt-agent-server.svg)](https://www.npmjs.com/package/systemprompt-agent-server)
+[![npm version](https://img.shields.io/npm/v/systemprompt-mcp-interview.svg)](https://www.npmjs.com/package/systemprompt-mcp-core)
 [![smithery badge](https://smithery.ai/badge/systemprompt-agent-server)](https://smithery.ai/server/systemprompt-agent-server)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/tyingshoelaces_?style=social)](https://twitter.com/tyingshoelaces_)

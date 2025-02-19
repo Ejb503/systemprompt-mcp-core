@@ -5,7 +5,7 @@ import {
 
 export const serverConfig: Implementation = {
   name: "systemprompt-mcp-core",
-  version: "1.0.28",
+  version: "1.0.29",
   metadata: {
     name: "System Prompt Agent Server",
     description:

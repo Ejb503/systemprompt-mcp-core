@@ -11,94 +11,87 @@ export const TOOL_RESPONSE_MESSAGES = {
 
 export const TOOLS: Tool[] = [
   {
-    name: "systemprompt_heartbeat",
+    name: "systemprompt_introduction",
     description:
-      "Returns a heartbeat response to indicate that the server is running. Will return the user's current status.",
+      "Returns a introduction to systemprompt.",
     inputSchema: {
       type: "object",
       properties: {},
     },
   },
   {
-    name: "systemprompt_fetch_resources",
-    description: "Fetches the user's resources, agents, and prompts.",
+    name: "systemprompt_config",
+    description: "Configures the users preferences and interactions with the system.",
     inputSchema: {
       type: "object",
-      properties: {},
-    },
-  },
-  {
-    name: "systemprompt_create_resource",
-    description:
-      "Creates a new resource based on the provided type and instructions.",
-    inputSchema: {
-      type: "object",
+      description: "Configuration for personalizing AI interactions",
       properties: {
-        type: {
+        name: {
           type: "string",
-          enum: ["prompt", "block", "agent"],
-          description: "The type of resource to create",
+          description: "Your preferred name that the AI will use when addressing you in conversations",
+          maxLength: 250
         },
-        userInstructions: {
+        communication_formality: {
+          type: "string", 
+          description: "How formal the AI's language should be (e.g., 'casual' for relaxed communication, 'formal' for professional settings)",
+          maxLength: 250
+        },
+        communication_tone: {
           type: "string",
-          description: "Instructions for creating the resource",
+          description: "The emotional tone the AI should use (e.g., 'friendly' for warm interactions, 'professional' for business-like communication)",
+          maxLength: 250
         },
+        communication_verbosity: {
+          type: "string",
+          description: "How detailed the AI's responses should be (e.g., 'concise' for brief answers, 'detailed' for comprehensive explanations)",
+          maxLength: 250
+        },
+        communication_technical: {
+          type: "string",
+          description: "The technical level of language the AI should use (e.g., 'basic' for simple terms, 'advanced' for expert-level terminology)",
+          maxLength: 250
+        },
+        expertise_background: {
+          type: "string",
+          description: "Your professional expertise and skills that help the AI understand your technical knowledge level"
+        },
+        expertise_history: {
+          type: "string",
+          description: "Your career history and experience to help the AI provide more relevant examples and analogies"
+        },
+        personal_background: {
+          type: "string",
+          description: "Your personal interests and experiences that help the AI make more meaningful connections in discussions"
+        },
+        personal_history: {
+          type: "string",
+          description: "Your learning journey and personal development that helps the AI understand your perspective"
+        }
       },
-      required: ["type", "userInstructions"],
+      required: ["name"]
+    },
+    _meta: {
+      callback: "require_systemprompt_user",
     },
   },
-  {
-    name: "systemprompt_update_resource",
-    description:
-      "Updates an existing resource based on the provided type and instructions.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "The ID of the resource to update.",
-        },
-        type: {
-          type: "string",
-          enum: ["prompt", "block", "agent"],
-          description: "The type of resource to update",
-        },
-        userInstructions: {
-          type: "string",
-          description: "Instructions for updating the resource",
-        },
-      },
-      required: ["id", "type", "userInstructions"],
-    },
-  },
-  {
-    name: "systemprompt_delete_resource",
-    description:
-      "Deletes an existing resource, agent, or prompt. Will return the resource's current status.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "The ID of the resource to delete.",
-        },
-      },
-      required: ["id"],
-    },
-  },
-  //   {
-  //   name: "systempromt_execute_prompt",
+  // {
+  //   name: "systemprompt_manage_resource",
   //   description:
-  //     "Executes a prompt and returns the result.",
+  //     "Creates a new resource based on the provided type and instructions.",
   //   inputSchema: {
   //     type: "object",
   //     properties: {
-  //       id: {
+  //       type: {
   //         type: "string",
-  //         description: "The ID of the prompt to execute.",
+  //         enum: ["prompt", "block", "agent"],
+  //         description: "The type of resource to create",
+  //       },
+  //       userInstructions: {
+  //         type: "string",
+  //         description: "Instructions for creating the resource",
   //       },
   //     },
-  //     required: ["id"],
+  //     required: ["type", "userInstructions"],
   //   },
   // },
 

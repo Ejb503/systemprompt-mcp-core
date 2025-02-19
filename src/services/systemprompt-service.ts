@@ -6,6 +6,7 @@ import type {
   SystempromptUserStatusResponse,
   SystempromptAgentResponse,
   SystempromptAgentRequest,
+  SystempromptUserRequest,
 } from "../types/index.js";
 
 export class SystemPromptService {
@@ -36,22 +37,6 @@ export class SystemPromptService {
 
   public static cleanup(): void {
     SystemPromptService.instance = null;
-  }
-
-  private async fetch(
-    method: string,
-    path: string,
-    body?: unknown
-  ): Promise<Response> {
-    const url = new URL(path, this.baseUrl).toString();
-    return fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": this.apiKey,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
   }
 
   private async request<T>(
@@ -189,6 +174,17 @@ export class SystemPromptService {
   }
 
   async fetchUserStatus(): Promise<SystempromptUserStatusResponse> {
-    return this.request<SystempromptUserStatusResponse>("GET", "/user/mcp");
+    return this.request<SystempromptUserStatusResponse>("GET", "/user/me");
+  }
+
+  async editUser(
+    uuid: string,
+    data: SystempromptUserRequest
+  ): Promise<SystempromptUserStatusResponse> {
+    return this.request<SystempromptUserStatusResponse>(
+      "PATCH",
+      `/user/${uuid}`,
+      data
+    );
   }
 }

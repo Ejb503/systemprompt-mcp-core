@@ -151,6 +151,32 @@ export interface SystempromptPromptResponse {
   _link: string;
 }
 
+export interface SystempromptUserRequest {
+  user: {
+    name: string;
+  };
+  instruction: {
+    communication: {
+      formality: string;
+      tone: string;
+      verbosity: string;
+      technical: string;
+    };
+    expertise: {
+      background: string;
+      history: string;
+    };
+    personal: {
+      background: string;
+      history: string;
+    };
+  };
+}
+
+/**
+ * @maxLength 250 for user.name and all communication fields (formality, tone, verbosity, technical)
+ */
+
 export interface Metadata {
   title: string;
   description: string | null;

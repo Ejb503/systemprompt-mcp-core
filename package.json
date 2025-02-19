@@ -1,6 +1,6 @@
 {
   "name": "systemprompt-mcp-core",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "A specialized Model Context Protocol (MCP) server that integrates with systemprompt.io to provide powerful prompt management capabilities. This server enables seamless creation, management, and versioning of system prompts and agents through MCP. It works in conjunction with the multimodal-mcp-client to provide a complete voice-powered AI workflow solution.",
   "type": "module",
   "bin": {
